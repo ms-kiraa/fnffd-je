@@ -32,7 +32,7 @@ public class Camera {
         this.scaleFactor = scaleFactor;
 
         bounds = new Rectangle();
-        bounds.setRect(x, y, Main.windowWidth*scaleFactor, Main.windowHeight*scaleFactor);
+        recalculateBounds();
 
         layers = new HashMap<>();
         layerDepths = new HashMap<>();
@@ -124,8 +124,46 @@ public class Camera {
         layers.get(layer).add(object);
     }
 
+    // camera movement methods
+    
+    /**
+     * Moves the camera the specified amount on the X axis and recalculates its bounds.
+     * @param x amount to move on the X axis
+     */
     public void moveCameraX(float x) {
+        this.x += x;
+        recalculateBounds();
+    }
 
+    /**
+     * Moves the camera the specified amount on the Y axis and recalculates its bounds.
+     * @param y amount to move on the Y axis
+     */
+    public void moveCameraY(float y) {
+        this.y += y;
+        recalculateBounds();
+    }
+
+    /**
+     * Moves the camera the specified amounts on the X and Y axis, respectively, and recalculates its bounds.
+     * @param x amount to move on the X axis
+     * @param y amount to move on the Y axis
+     */
+    public void moveCamera(float x, float y) {
+        this.x += x;
+        this.y += y;
+        recalculateBounds();
+    }
+
+    /**
+     * Sets the camera's position to the specified X and Y positions and recalculates its bounds.
+     * @param x position on the X axis to set the camera's to
+     * @param y position on the Y axis to set the camera's to
+     */
+    public void setCameraPos(float x, float y) {
+        this.x = x;
+        this.y = y;
+        recalculateBounds();
     }
 
     private String getKeyFromDepth(int depth) {
@@ -133,6 +171,10 @@ public class Camera {
             if(layerDepths.get(key) == depth) return key;
         }
         return null; // no key has been found
+    }
+
+    private void recalculateBounds(){
+        bounds.setRect(x, y, Main.windowWidth*scaleFactor, Main.windowHeight*scaleFactor);
     }
 
     /**
