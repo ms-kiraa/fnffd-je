@@ -1,3 +1,4 @@
+import java.awt.Graphics2D;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -7,10 +8,10 @@ public class Camera {
     private Map<String, List<GameObject>> layers;
     private Map<String, Integer> layerDepths;
 
-    private double x;
-    private double y;
+    public double x;
+    public double y;
 
-    private double scaleFactor;
+    public double scaleFactor;
 
     /**
      * Creates a new Camera object.
@@ -61,6 +62,7 @@ public class Camera {
      * <p>
      * <b>How depth works:</b>
      * <ul>
+     * <li>Depth can be any real integer, including negative ones.</li>
      * <li>A layer's depth determines its rendering order relative to other layers.</li>
      * <li>Higher depth values result in layers being rendered on top of lower depth layers.</li>
      * <li>For example, if Layer A has a higher depth than Layer B, Layer A will be rendered on top of Layer B.</li>
@@ -91,5 +93,13 @@ public class Camera {
         }
 
         layers.get(layer).add(object);
+    }
+
+    /**
+     * Draws all current layers in order to the Graphics2D object supplied.
+     * @param g Graphics2D object to draw to.
+     */
+    public void drawViewport(Graphics2D g) {
+        
     }
 }
