@@ -28,8 +28,6 @@ public class Main extends JFrame {
         
         setLocationRelativeTo(null);
         setVisible(true);
-
-        new Camera().addObjectToLayer("bl;ah", null);
     }
 
     // panel switching methods
