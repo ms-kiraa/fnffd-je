@@ -1,0 +1,14 @@
+This is a test of the event loading feature! This is a header and should not be parsed along with the rest of it!
+
+We tell the parser that the line is a command by using a percent sign. For example, this is how we start the whole thing.
+
+%START
+%EVENT0
+System.out.println("This is the first event!");
+%BREAK
+%EVENT1
+System.out.println("This is the second event! Yes this is kind of confusing");
+%BREAK
+%END
+
+The "END" command tells the parser that we have reached the end of the events and that we don't need to look at the rest of the file, and can just stop here.

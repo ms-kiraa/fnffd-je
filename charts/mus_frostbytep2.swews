@@ -1,0 +1,23 @@
+%START
+%EVENT2
+import javax.swing.Timer;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+Main.game.stagefloat1 = 0;
+Main.game.stageint1 = Main.main.getX();
+Main.game.stageint2 = Main.main.getY();
+Main.game.eventTimer = new Timer(15, new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Main.game.stagefloat1 += 0.1f;
+                Main.main.setLocation((int)(Main.game.stageint1 + Math.cos(Main.game.stagefloat1/2)*50), (int)(Main.game.stageint2 + Math.sin(Main.game.stagefloat1)*50));
+            }
+});
+Main.game.eventTimer.start();
+%BREAK
+%EVENT4
+Main.game.eventTimer.stop();
+Main.main.setLocation(Main.game.stageint1, Main.game.stageint2);
+%BREAK
+%END

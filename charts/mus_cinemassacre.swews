@@ -1,0 +1,6 @@
+%START
+%EVENT0
+import java.awt.Color;
+Main.game.cam.removeObjectToDraw(Color.BLACK);
+%BREAK
+%END

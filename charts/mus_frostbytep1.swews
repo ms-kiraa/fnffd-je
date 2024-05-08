@@ -1,0 +1,6 @@
+%START
+%EVENT0
+FadeManager.fadeIn(Color.BLACK, 1, 20);
+cam.removeObjectToDraw(Color.BLACK);
+%BREAK
+%END

@@ -1,0 +1,40 @@
+%START
+%EVENT0
+import java.awt.Color;
+
+FadeManager.fadeIn(Color.WHITE, 2, 1);
+Main.game.cam.cameraX = Main.game.xgomain;
+%BREAK
+%EVENT1
+System.out.println("Do nothing wow thats a bit of an oversight");
+%BREAK
+%EVENT2
+import java.awt.Color;
+
+System.out.println("Event 2 for stars");
+FadeManager.fadeIn(Color.WHITE, 2, 1);
+
+Main.game.cam.removeObjectToDraw(Main.game.funny1);
+Main.game.cam.removeObjectToDraw(Main.game.funny2);
+Main.game.cam.removeObjectToDraw(Main.game.m);
+
+Main.game.dude.toggleShade();
+Main.game.dude.setTint(true, 1, Color.BLACK);
+Main.game.badGuy.toggleShade();
+Main.game.badGuy.setTint(true, 1, Color.BLACK);
+
+Main.game.badGuy.x += 50;
+Main.game.dude.x -= 50;
+
+Main.game.badGuy.y += 30;
+
+Main.game.xgop1 += 225;
+Main.game.xgop2 += 50;
+
+Main.game.cam.cameraY += 120;
+Main.game.cam.cameraX = Main.game.xgop1;
+
+Main.game.cam.scaleFactor = 4;
+%BREAK
+%END
+ending for now ill finish l8r
