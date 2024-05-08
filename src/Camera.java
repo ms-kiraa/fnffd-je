@@ -1,5 +1,7 @@
 import java.awt.Graphics2D;
+import java.awt.Rectangle;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -7,6 +9,9 @@ import java.util.Map;
 public class Camera {
     private Map<String, List<GameObject>> layers;
     private Map<String, Integer> layerDepths;
+    private ArrayList<String> orderToDraw;
+
+    private Rectangle bounds;
 
     public double x;
     public double y;
@@ -26,8 +31,12 @@ public class Camera {
         this.y = y;
         this.scaleFactor = scaleFactor;
 
+        bounds = new Rectangle();
+        bounds.setRect(x, y, Main.windowWidth*scaleFactor, Main.windowHeight*scaleFactor);
+
         layers = new HashMap<>();
         layerDepths = new HashMap<>();
+        orderToDraw = new ArrayList<>();
 
         addRenderLayer("Background", 0);
         addRenderLayer("Objects", 10);
@@ -75,10 +84,30 @@ public class Camera {
      * 
      * @param name the name of the layer being created
      * @param depth the depth of the layer being created
+     * @throws IllegalArgumentException if a layer with the exact same depth already exists
      */
-    public void addRenderLayer(String name, int depth) {
+    public void addRenderLayer(String name, int depth) throws IllegalArgumentException {
+        for(String key : layerDepths.keySet()) {
+            if(layerDepths.get(key) == depth) throw new IllegalArgumentException("A layer with depth " + depth + " already exists: " + key);
+        }
         layers.put(name, new ArrayList<GameObject>());
         layerDepths.put(name, depth);
+
+        // clear the order, we're remaking it! yay!
+        // todo: maybe just figure out how to insert it?? instead of redoing the whole thing
+        orderToDraw.clear();
+        // sort the list so we can order them from lowest depth to highest
+        ArrayList<Integer> vals = new ArrayList<>();
+        // i dont think theres already a function for this
+        for(String key : layerDepths.keySet()) {
+            vals.add(layerDepths.get(key));
+        }
+        // this is why we need to bank on only one layer of each depth existing
+        Collections.sort(vals);
+        for(Integer val : vals) {
+            orderToDraw.add(getKeyFromDepth(val));
+        }
+        System.out.println(orderToDraw);
     }
 
     /**
@@ -95,11 +124,26 @@ public class Camera {
         layers.get(layer).add(object);
     }
 
+    public void moveCameraX(float x) {
+
+    }
+
+    private String getKeyFromDepth(int depth) {
+        for(String key : layerDepths.keySet()) {
+            if(layerDepths.get(key) == depth) return key;
+        }
+        return null; // no key has been found
+    }
+
     /**
      * Draws all current layers in order to the Graphics2D object supplied.
      * @param g Graphics2D object to draw to.
      */
     public void drawViewport(Graphics2D g) {
-        
+        for(String key : orderToDraw) {
+            for(GameObject object : layers.get(key)) {
+                if(bounds.intersects(object.bounds)) object.render(g, this);
+            }
+        }
     }
 }

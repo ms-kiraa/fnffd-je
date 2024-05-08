@@ -8,9 +8,11 @@ public class Main extends JFrame {
 
     public static Main main;
 
+    // this is probably a bad idea but meh
     public static RecordScratchScreen rss;
     public static TitleScreen ts;
     public static MainMenu mm;
+    public static Stage s;
 
     private Main(String title){
         super(title);
@@ -21,8 +23,8 @@ public class Main extends JFrame {
         setLayout(new BorderLayout());
         setResizable(false);
 
-        rss = new RecordScratchScreen();
-        getContentPane().add(rss, BorderLayout.CENTER);
+        s = new Stage();
+        getContentPane().add(s, BorderLayout.CENTER);
 
         pack();
         

@@ -22,15 +22,17 @@ public class GameObject {
         this.scale = scale;
 
         this.image = image;
-        bounds = new Rectangle((int)x, (int)y, image.getWidth(), image.getHeight()); // todo: rounding x and y probably isnt the best solution??
+        bounds = new Rectangle();
+        bounds.setRect(x, y, this.image.getWidth(), this.image.getHeight());
     }
 
     protected void update(){
 
     }
 
-    public void render(Graphics2D g) {
-        g.drawImage(image, (int)x, (int)y, null); // todo: this doesnt take in account for the camera lol make it do that
+    public void render(Graphics2D g, Camera cam) {
+        // todo: rounding probably isnt the best solution?? also no clue if the scale thing is right LOL
+        g.drawImage(image, (int)(x-cam.x), (int)(y-cam.y), (int)(bounds.getWidth()*cam.scaleFactor), (int)(bounds.getHeight()*cam.scaleFactor), null);
     }
 
 }
