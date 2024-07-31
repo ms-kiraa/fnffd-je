@@ -9,7 +9,6 @@ import javax.imageio.ImageIO;
 public class UINote extends Note {
     
     private boolean pressed = false;
-    
     public static int presses = 0;
 
     public UINote(double x, double y, Direction direction, Camera camera, boolean fump, boolean playerNote){
@@ -21,7 +20,7 @@ public class UINote extends Note {
             BufferedImage bi;
             if(cache.containsKey(path)) bi = cache.get(path);
             else {
-                bi = ImageIO.read(new File("./img/ui/notes/ui/" + path + getDirectionAsInt() + ".png"));
+                bi = ImageIO.read(new File("./img/ui/notes/ui/" + path + Direction.getDirectionAsInt(this.dir) + ".png"));
                 cache.put(path, bi);
             }
             setImage(bi);
@@ -37,7 +36,7 @@ public class UINote extends Note {
             BufferedImage bi;
             if(cache.containsKey(path)) bi = cache.get(path);
             else {
-                bi = ImageIO.read(new File("./img/ui/notes/ui/" + path + getDirectionAsInt() + ".png"));
+                bi = ImageIO.read(new File("./img/ui/notes/ui/" + path + Direction.getDirectionAsInt(this.dir) + ".png"));
                 cache.put(path, bi);
             }
             setImage(bi);
@@ -47,7 +46,7 @@ public class UINote extends Note {
     public void visPress(){
         presses++;
         pressed = true;
-        String threadName = "Player" + getDirectionAsString(CapsMode.UPPER_CAMEL_CASE) + "PressThread" + presses;
+        String threadName = "Player" + Direction.getDirectionAsString(this.dir, CapsMode.UPPER_CAMEL_CASE) + "PressThread" + presses;
         Thread pressThread = new Thread(()->{
             try{Thread.sleep(150);}catch(Exception e){e.printStackTrace();}
             pressed = false;
