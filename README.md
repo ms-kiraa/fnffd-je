@@ -10,7 +10,7 @@ just make a pr ill probably accept it, also maybe consider contacting me on disc
 # credits
 
 * [avery](https://twitter.com/averydoesstuf) - made the really cool dude image on the title screen
-* carrie - made the menu music
+* [carrie](https://store.steampowered.com/app/2231450/Pizza_Tower/) - made the menu music
 * [me (kira)](https://twitter.com/ms_kiraa_) - coded like everything (so far)
 
     ## special thanks:

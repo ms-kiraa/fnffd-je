@@ -1,5 +1,7 @@
+import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
+import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -17,6 +19,8 @@ public class Camera {
     public double y;
 
     public double scaleFactor;
+    private Color background;
+    private BufferedImage bgBI;
 
     /**
      * Creates a new Camera object.
@@ -60,7 +64,7 @@ public class Camera {
      * This process includes adding the default layers.
      */
     public Camera() {
-        this(0,0,1.5);
+        this(0,0);
     }
 
     /**
@@ -125,12 +129,12 @@ public class Camera {
     }
 
     // camera movement methods
-    
+
     /**
      * Moves the camera the specified amount on the X axis and recalculates its bounds.
      * @param x amount to move on the X axis
      */
-    public void moveCameraX(float x) {
+    public void moveCameraX(double x) {
         this.x += x;
         recalculateBounds();
     }
@@ -139,7 +143,7 @@ public class Camera {
      * Moves the camera the specified amount on the Y axis and recalculates its bounds.
      * @param y amount to move on the Y axis
      */
-    public void moveCameraY(float y) {
+    public void moveCameraY(double y) {
         this.y += y;
         recalculateBounds();
     }
@@ -149,7 +153,7 @@ public class Camera {
      * @param x amount to move on the X axis
      * @param y amount to move on the Y axis
      */
-    public void moveCamera(float x, float y) {
+    public void moveCamera(double x, double y) {
         this.x += x;
         this.y += y;
         recalculateBounds();
@@ -160,9 +164,65 @@ public class Camera {
      * @param x position on the X axis to set the camera's to
      * @param y position on the Y axis to set the camera's to
      */
-    public void setCameraPos(float x, float y) {
+    public void setCameraPos(double x, double y) {
         this.x = x;
         this.y = y;
+        recalculateBounds();
+    }
+
+    /**
+     * Sets the camera's background to the color specified.
+     * <p>
+     * The background is a color or image drawn before any other object assigned to a layer.
+     * @param newBG color to set the background to
+     */
+    public void setBackground(Color newBG){
+        background = newBG;
+        bgBI = new BufferedImage(Main.windowWidth, Main.windowHeight, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D bgGraphics = bgBI.createGraphics();
+        bgGraphics.setColor(background);
+        bgGraphics.fillRect(0, 0, bgBI.getWidth(), bgBI.getHeight());
+        bgGraphics.dispose();
+    }
+
+    /**
+     * Sets the camera's background to the image specified.
+     * <p>
+     * The background is a color or image drawn before any other object assigned to a layer.
+     * @param newBG image to set the background to
+     */
+    public void setBackground(BufferedImage newBG){
+        background = null;
+        bgBI = newBG;
+    }
+
+    /**
+     * Get an array of the background color (null if background is an image) and background image of the camera
+     * <p>
+     * Both of these will be null if no background is set
+     * @return background color (if applicable) and image
+     */
+    public Object[] getBackground(){
+        Object[] ret = {background, bgBI};
+        return ret;
+    }
+
+    /**
+     * Zooms the camera in or out based on the inputted value. Also recalculates its bounds.
+     * @param zoom amount to zoom in
+     */
+    public void changeCameraZoom(double zoom) {
+        scaleFactor += zoom;
+        if(scaleFactor < 0.05) scaleFactor = 1;
+        recalculateBounds();
+    }
+
+    /**
+     * Sets the camera's scale (zoom) to the inputted value. Also recalculates its bounds.
+     * @param scale scale to set the camera to
+     */
+    public void setCameraScale(double scale) {
+        scaleFactor = scale;
         recalculateBounds();
     }
 
@@ -174,7 +234,11 @@ public class Camera {
     }
 
     private void recalculateBounds(){
-        bounds.setRect(x, y, Main.windowWidth*scaleFactor, Main.windowHeight*scaleFactor);
+        bounds.setRect(x, y, Main.windowWidth, Main.windowHeight);
+    }
+
+    public Rectangle getBounds(){
+        return bounds;
     }
 
     /**
@@ -182,10 +246,16 @@ public class Camera {
      * @param g Graphics2D object to draw to.
      */
     public void drawViewport(Graphics2D g) {
+        // int drawn = 0;
+        if(bgBI != null) g.drawImage(bgBI, 0, 0, null);
         for(String key : orderToDraw) {
             for(GameObject object : layers.get(key)) {
-                if(bounds.intersects(object.bounds)) object.render(g, this);
+                if(true) { // TODO: check to make sure the camera can actually see it lol
+                    object.render(g, this);
+                    // drawn++;
+                }
             }
         }
+        // System.out.println("Objects drawn: " + drawn);
     }
 }
