@@ -53,7 +53,7 @@ public class UINote extends Note {
     public void render(Graphics2D g, Camera cam) {
         AlphaComposite oldAC = (AlphaComposite) g.getComposite();
         if(pressed){
-            AlphaComposite ac = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.5f);
+            AlphaComposite ac = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.3f);
             g.setComposite(ac);
         }
         super.render(g, cam);

@@ -23,6 +23,8 @@ public class GameObject {
 
     public Camera cam;
 
+    public int drawID = -1;
+
     public GameObject(double x, double y, double scale, BufferedImage image, Camera cam) {
         this.x = x;
         this.y = y;

@@ -124,8 +124,26 @@ public class Camera {
         if (!layers.keySet().contains(layer)) {
             throw new IllegalArgumentException("No layer with the name '" + layer + "' exists!");
         }
-
+        object.drawID = layers.get(layer).size();
         layers.get(layer).add(object);
+    }
+
+    public void removeObjectFromLayer(String layer, GameObject object) throws IllegalArgumentException {
+        if (!layers.keySet().contains(layer)) {
+            throw new IllegalArgumentException("No layer with the name '" + layer + "' exists!");
+        }
+
+        boolean foundObject = false;
+        GameObject target = null;
+        for(GameObject obj : layers.get(layer)){
+            if (obj.drawID == object.drawID) {
+                foundObject = true;
+                target = obj;
+                break;
+            } 
+        }
+        if(!foundObject) System.out.println("COULD NOT FIND OBJECT WITH DRAW ID " + object.drawID);
+        else layers.get(layer).remove(target);
     }
 
     // camera movement methods

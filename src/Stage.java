@@ -6,8 +6,12 @@ import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.ListIterator;
+import java.util.Map;
 import java.util.Scanner;
 
 import javax.imageio.ImageIO;
@@ -36,8 +40,14 @@ public class Stage extends JPanel {
     double songlong;
     double songbeat;
     double songpos;
+
     ArrayList<ArrayList<GameNote>> curChart;
     ArrayList<ArrayList<Integer>> curChartTypes;
+    Map<String, Map<Integer, UINote>> uiNotes = new HashMap<>();
+
+    public static Stage instance;
+
+    boolean[] keysPressed = {false, false, false, false};
 
     Clip song;
 
@@ -54,6 +64,24 @@ public class Stage extends JPanel {
         updateTimer.start();
     });
 
+    private GameNote findHittableNoteInLane(boolean playerLane, int lane){
+        System.out.println(lane + (playerLane ? 4 : 0));
+        ArrayList<GameNote> laneList = curChart.get(lane + (playerLane ? 4 : 0));
+        UINote ui = uiNotes.get(playerLane ? "Player" : "BadGuy").get(lane%4);
+        int range = 40;
+
+        for(GameNote note : laneList) {
+            if(note.y >= ui.y - range && note.y <= ui.y + range){
+                return note;
+            }
+        }
+        return null;
+    }
+
+    private void removeNote(GameNote gn){
+        cam.removeObjectFromLayer("UI", gn);
+        gn = null;
+    }
     private void update(){
         songpos = (song.getMicrosecondPosition() / 1000000.0);
         double songProgress = songpos / songlong;
@@ -65,6 +93,41 @@ public class Stage extends JPanel {
             while(iter2.hasNext()){
                 GameNote gn = iter2.next();
                 gn.move(ymod);
+                if(gn.y < 0-gn.image.getHeight()) {
+                    removeNote(gn);
+                    iter2.remove();
+                    continue;
+                }
+
+                if(gn.type == GameNote.NoteType.EVENT){
+                    //if(Math.round(Math.random()*5) == 2) Main.s = new Stage();
+                    if(gn.y <= uiNotes.get("Player").get(3).y) {
+                        System.out.println("dats an event note right htere.");
+                        removeNote(gn);
+                        iter2.remove();
+                        continue;
+                    }
+                }
+                if(gn.playerNote){
+                    // handle player note stuff
+                    if( 
+                        (gn.type == GameNote.NoteType.HOLD || gn.type == GameNote.NoteType.ALT_HOLD) && 
+                        keysPressed[gn.dir.getDirectionAsInt()] && 
+                        gn.y <= uiNotes.get("Player").get(gn.dir.getDirectionAsInt()).y
+                    ){
+                        removeNote(gn);
+                        iter2.remove();
+                        continue;
+                    }
+                } else {
+                    if(gn.y <= uiNotes.get("BadGuy").get(gn.dir.getDirectionAsInt()).y) {
+                        if(gn.type == GameNote.NoteType.NORMAL || gn.type == GameNote.NoteType.ALT)
+                            uiNotes.get("BadGuy").get(gn.dir.getDirectionAsInt()).visPress();
+                        removeNote(gn);
+                        iter2.remove();
+                        continue;
+                    }
+                }
             }
 
         }
@@ -115,6 +178,7 @@ public class Stage extends JPanel {
     // very very barebones! this is all just for testing tho
 
     public Stage(){
+        instance = this;
         cam = new Camera(); // testing
         
         BufferedImage bi = new BufferedImage(10, 10, BufferedImage.TYPE_INT_ARGB);
@@ -141,19 +205,142 @@ public class Stage extends JPanel {
         cam.addObjectToLayer("Background", hb1);
 
         this.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_D, 0,false),
-                "d");
-            this.getActionMap().put("d",
+                "leftKeyPress");
+            this.getActionMap().put("leftKeyPress",
             new AbstractAction() {
 
 				@Override
 				public void actionPerformed(ActionEvent e) {
-					
+                    if(keysPressed[0]) return;
+					uiNotes.get("Player").get(0).visPress();
+
+                    GameNote hitNote = findHittableNoteInLane(true, 0);
+                    if(hitNote != null){
+                        System.out.println("Found note to dedlete");
+                        removeNote(hitNote);
+                    }
+                    keysPressed[0] = true;
+				}
+
+            }
+        );
+
+        this.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_D, 0,true),
+                "leftKeyRelease");
+            this.getActionMap().put("leftKeyRelease",
+            new AbstractAction() {
+
+				@Override
+				public void actionPerformed(ActionEvent e) {
+                    keysPressed[0] = false;
+				}
+
+            }
+        );
+
+        this.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_F, 0,false),
+                "downKeyPress");
+            this.getActionMap().put("downKeyPress",
+            new AbstractAction() {
+
+				@Override
+				public void actionPerformed(ActionEvent e) {
+                    if(keysPressed[1]) return;
+					uiNotes.get("Player").get(1).visPress();
+
+                    GameNote hitNote = findHittableNoteInLane(true, 1);
+                    if(hitNote != null){
+                        System.out.println("Found note to dedlete");
+                        removeNote(hitNote);
+                    }
+                    keysPressed[1] = true;
+				}
+
+            }
+        );
+
+        this.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_F, 0,true),
+                "downKeyRelease");
+            this.getActionMap().put("downKeyRelease",
+            new AbstractAction() {
+
+				@Override
+				public void actionPerformed(ActionEvent e) {
+                    keysPressed[1] = false;
 				}
 
             }
         );
 
         this.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_J, 0,false),
+                "upKeyPress");
+            this.getActionMap().put("upKeyPress",
+            new AbstractAction() {
+
+				@Override
+				public void actionPerformed(ActionEvent e) {
+                    if(keysPressed[2]) return;
+					uiNotes.get("Player").get(2).visPress();
+
+                    GameNote hitNote = findHittableNoteInLane(true, 2);
+                    if(hitNote != null){
+                        System.out.println("Found note to dedlete");
+                        removeNote(hitNote);
+                    }
+                    keysPressed[2] = true;
+				}
+
+            }
+        );
+
+        this.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_J, 0,true),
+                "upKeyRelease");
+            this.getActionMap().put("upKeyRelease",
+            new AbstractAction() {
+
+				@Override
+				public void actionPerformed(ActionEvent e) {
+                    keysPressed[2] = false;
+				}
+
+            }
+        );
+
+        this.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_K, 0,false),
+                "rightKeyPress");
+            this.getActionMap().put("rightKeyPress",
+            new AbstractAction() {
+
+				@Override
+				public void actionPerformed(ActionEvent e) {
+                    if(keysPressed[3]) return;
+					uiNotes.get("Player").get(3).visPress();
+
+                    GameNote hitNote = findHittableNoteInLane(true, 3);
+                    if(hitNote != null){
+                        System.out.println("Found note to dedlete");
+                        removeNote(hitNote);
+                    }
+                    keysPressed[3] = true;
+				}
+
+            }
+        );
+
+        this.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_K, 0,true),
+                "rightKeyRelease");
+            this.getActionMap().put("rightKeyRelease",
+            new AbstractAction() {
+
+				@Override
+				public void actionPerformed(ActionEvent e) {
+                    keysPressed[3] = false;
+				}
+
+            }
+        );
+
+        /*this.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_J, 0,false),
                 "j");
             this.getActionMap().put("j",
             new AbstractAction() {
@@ -203,7 +390,7 @@ public class Stage extends JPanel {
 				}
 
             }
-        );
+        );*/
 
         redrawTimer = new Timer(15, (e) -> {
             repaint();
@@ -211,7 +398,13 @@ public class Stage extends JPanel {
         });
 
         redrawTimer.start();
-        curChart = loadChart("mus_w3s1");
+        String load = "mus/w1s1";
+        try{
+            load = Files.readString(Paths.get("./SONG_TO_LOAD_NAME.txt"));
+        } catch(Exception e){
+            e.printStackTrace();
+        }
+        curChart = loadChart(load);
         updateThread.start();
     }
     
@@ -221,7 +414,7 @@ public class Stage extends JPanel {
         ArrayList<ArrayList<GameNote>> ret = new ArrayList<>();
         curChartTypes = new ArrayList<>();
         Scanner scan = null;
-
+        this.songName = songName;
         try{
             String fileName = "./charts/" + songName + ".swows";
 
@@ -257,6 +450,9 @@ public class Stage extends JPanel {
 
             int starty = 38;
 
+            uiNotes.put("BadGuy", new HashMap<>());
+            uiNotes.put("Player", new HashMap<>());
+
             for(bb = 0; bb < 8; bb++){
                 ret.add(new ArrayList<>());
                 curChartTypes.add(new ArrayList<>());
@@ -267,8 +463,9 @@ public class Stage extends JPanel {
                     myx=234+50+(60*(bb-4));
                 }
                 // ui note
-                UINote uin = new UINote(myx, starty, bb%4, cam, false, bb>=4);
+                UINote uin = new UINote(myx, starty, bb%4, cam, (songName.equals("mus_frostbytep2") && bb < 4), bb>=4);
                 cam.addObjectToLayer("UI", uin);
+                uiNotes.get((bb < 4) ? "BadGuy" : "Player").put(bb%4, uin);
 
                 // FUCKING NOTES BABYYYYY 
                 for(b = 0; b < songlong; b++){
@@ -276,7 +473,7 @@ public class Stage extends JPanel {
                     curChartTypes.get(bb).add(line);
                     //System.out.println(curChartTypes.get(bb).get(b));
                     if(line != 0){
-                        GameNote gn = new GameNote(myx,(48+(b*48*scrollSpeed)), bb%4, cam, false, true, curChartTypes.get(bb).get(b));
+                        GameNote gn = new GameNote(myx,(48+(b*48*scrollSpeed)), bb%4, cam, (songName.equals("mus_frostbytep2") && bb < 4), bb >= 4, curChartTypes.get(bb).get(b));
                         cam.addObjectToLayer("UI", gn);
                         ret.get(bb).add(gn);
                     }

@@ -42,7 +42,21 @@ public class GameNote extends Note {
         String basePath = "./img/ui/notes/";
         switch(type){
             case BOMB:
-                basePath += "bombs/spr_bombs_";
+                basePath += "bombs/";
+                switch(Stage.instance.songName){
+                    case "mus_w3s2":
+                        //System.out.println("Tsunami");
+                        if(playerNote) basePath += "buddy/spr_notes3_";
+                        else basePath += "spr_bombs_";
+                        break;
+                    case "mus_channelsurf":
+                        //System.out.println("Channelsurfing");
+                        basePath += "nermal/spr_bombsn_";
+                        break;
+                    default:
+                        basePath += "spr_bombs_";
+                        break;
+                }
                 break;
             case DUDE_CAM:
             case ENEMY_CAM:
@@ -95,7 +109,14 @@ public class GameNote extends Note {
 
     public void move(double amt){
         double newY = yy - amt;
-        y = newY;
+        if(newY <= 800){
+            y = newY;
+        }
+    }
+
+    public boolean sameAs(GameNote obj){
+        if(obj.x == x && obj.yy == yy) return true;
+        return false;
     }
     
     public enum NoteType {
