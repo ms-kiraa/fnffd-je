@@ -16,12 +16,14 @@ public class Note extends GameObject {
         this.dir = direction;
         this.playerNote = playerNote;
         this.fumpNote = fump;
+        this.scrollFactor = 0;
     }
     public Note(double x, double y, Direction direction, Camera camera, boolean playerNote){
         super(x, y, 1.3, new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB), camera);
         this.dir = direction;
         this.playerNote = playerNote;
         this.fumpNote = false;
+        this.scrollFactor = 0;
     }
 
     public Note(double x, double y, int direction, Camera camera, boolean fump, boolean playerNote){
@@ -29,12 +31,14 @@ public class Note extends GameObject {
         this.dir = Direction.getIntAsDirection(direction);
         this.playerNote = playerNote;
         this.fumpNote = fump;
+        this.scrollFactor = 0;
     }
     public Note(double x, double y, int direction, Camera camera, boolean playerNote){
         super(x, y, 1.3, new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB), camera);
         this.dir = Direction.getIntAsDirection(direction);
         this.playerNote = playerNote;
         this.fumpNote = false;
+        this.scrollFactor = 0;
     }
 
     /**
@@ -56,10 +60,10 @@ public class Note extends GameObject {
          * @param capsMode how to format the direction
          * @return 
          */
-        protected static String getDirectionAsString(Direction dir, CapsMode capsMode){
+        public String getDirectionAsString(CapsMode capsMode){
             String returnString = "null";
 
-            switch(dir){
+            switch(this){
                 case LEFT:
                     returnString = "left";
                     break;
@@ -88,8 +92,8 @@ public class Note extends GameObject {
             return returnString;
         }
 
-        public static int getDirectionAsInt(Direction dir){
-            switch(dir){
+        public int getDirectionAsInt(){
+            switch(this){
                 case LEFT:
                     return 0;
                 case DOWN:

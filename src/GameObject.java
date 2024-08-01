@@ -15,6 +15,8 @@ public class GameObject {
     public double y;
     public double scale;
     public double scrollFactor = 1;
+    public boolean camScaleAffectsScale = true;
+    public double camScaleAffectAmount = 1;
 
     public Rectangle bounds;
     public BufferedImage image;
@@ -89,10 +91,11 @@ public class GameObject {
         double camCenterY = cam.y + cam.getBounds().height / 2.0;
     
         // Calculate the position of the image relative to the center of the camera
-        double imgPosX = ((x - camCenterX) * cam.scaleFactor + cam.getBounds().width / 2.0)*scrollFactor;
-        double imgPosY = ((y - camCenterY) * cam.scaleFactor + cam.getBounds().height / 2.0)*scrollFactor;
+        double imgPosX = ((x - (cam.x*scrollFactor)) * cam.scaleFactor/* + cam.getBounds().width / 2.0*/);
+        double imgPosY = ((y - (cam.y*scrollFactor)) * cam.scaleFactor/* + cam.getBounds().height / 2.0*/);
     
         // Draw the image with the new calculated positions
+        // the stupid zoom doesnt work very well but thats ok ill barely use it
         g.drawImage(img, (int) imgPosX, (int) imgPosY, (int) ((img.getWidth()*scale) * cam.scaleFactor), (int) ((img.getHeight()*scale) * cam.scaleFactor), null);
     }
 

@@ -14,29 +14,23 @@ public class UINote extends Note {
     public UINote(double x, double y, Direction direction, Camera camera, boolean fump, boolean playerNote){
         super(x, y, direction, camera, fump, playerNote);
         this.playerNote = playerNote;
-        this.scrollFactor = 0;
-        try{
-            String path = (fump) ? ("fump/spr_uinotefump_") : ("spr_uinotes_");
-            BufferedImage bi;
-            if(cache.containsKey(path)) bi = cache.get(path);
-            else {
-                bi = ImageIO.read(new File("./img/ui/notes/ui/" + path + Direction.getDirectionAsInt(this.dir) + ".png"));
-                cache.put(path, bi);
-            }
-            setImage(bi);
-        } catch(Exception e){e.printStackTrace(); System.exit(1);}
+        setImage();
     }
 
     public UINote(double x, double y, int direction, Camera camera, boolean fump, boolean playerNote){
         super(x, y, direction, camera, fump, playerNote);
         this.playerNote = playerNote;
-        this.scrollFactor = 0;
+        setImage();
+    }
+
+    private void setImage(){
         try{
-            String path = (fump) ? ("fump/spr_uinotefump_") : ("spr_uinotes_");
+            String path = (fumpNote) ? ("fump/spr_uinotefump_") : ("spr_uinotes_");
+            path += this.dir.getDirectionAsInt();
             BufferedImage bi;
             if(cache.containsKey(path)) bi = cache.get(path);
             else {
-                bi = ImageIO.read(new File("./img/ui/notes/ui/" + path + Direction.getDirectionAsInt(this.dir) + ".png"));
+                bi = ImageIO.read(new File("./img/ui/notes/ui/" + path + ".png"));
                 cache.put(path, bi);
             }
             setImage(bi);
@@ -46,9 +40,9 @@ public class UINote extends Note {
     public void visPress(){
         presses++;
         pressed = true;
-        String threadName = "Player" + Direction.getDirectionAsString(this.dir, CapsMode.UPPER_CAMEL_CASE) + "PressThread" + presses;
+        String threadName = "Player" + this.dir.getDirectionAsString(CapsMode.UPPER_CAMEL_CASE) + "PressThread" + presses;
         Thread pressThread = new Thread(()->{
-            try{Thread.sleep(150);}catch(Exception e){e.printStackTrace();}
+            try{Thread.sleep(200);}catch(Exception e){e.printStackTrace();}
             pressed = false;
         });
         pressThread.setName(threadName);
