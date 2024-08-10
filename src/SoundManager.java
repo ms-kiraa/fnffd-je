@@ -4,8 +4,10 @@ import javax.sound.sampled.*;
 
 public class SoundManager {
     public static Clip songClip;
-    public static Clip extraSongClip;
+    public static Clip extrasongClip;
     public static Clip sfxClip;
+
+    private static float masterGain = 1f;
 
     public static void playSFX(String soundFile) {
         try {
@@ -21,32 +23,70 @@ public class SoundManager {
                     }
                 }
             });
+
+            setVolume(sfxClip, masterGain);
         } catch (Exception e) {
             e.printStackTrace();
             System.err.println(soundFile);
         }
     }
 
+    public static void playSong(String soundFile, Runnable run) {
+        try{
+            File f = new File(soundFile);
+            AudioInputStream audioIn = AudioSystem.getAudioInputStream(f.toURI().toURL());  
+            songClip = AudioSystem.getClip();
+            songClip.open(audioIn);
+            songClip.start();
+            songClip.addLineListener(new LineListener() {
+                public void update(LineEvent myLineEvent) {
+                    if (myLineEvent.getType() == LineEvent.Type.STOP){
+                        run.run();
+                    }   
+                }
+            });
+        } catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+
     public static void loopExtraSound(String soundFile) {
         try {
             AudioInputStream audioIn = AudioSystem.getAudioInputStream(new File(soundFile));
-            extraSongClip = AudioSystem.getClip();
-            extraSongClip.open(audioIn);
-            extraSongClip.start();
+            extrasongClip = AudioSystem.getClip();
+            extrasongClip.open(audioIn);
+            extrasongClip.start();
 
-            extraSongClip.loop(Clip.LOOP_CONTINUOUSLY);
+            extrasongClip.loop(Clip.LOOP_CONTINUOUSLY);
             
-            extraSongClip.addLineListener(new LineListener() {
+            extrasongClip.addLineListener(new LineListener() {
                 public void update(LineEvent myLineEvent) {
                     if (myLineEvent.getType() == LineEvent.Type.STOP) {
-                        extraSongClip.close();
+                        extrasongClip.close();
                     }
                 }
             });
+
+            setVolume(extrasongClip, masterGain);
         } catch (Exception e) {
             e.printStackTrace();
             System.err.println(soundFile);
         }
+    }
+
+    public static void setVolume(float volume) {
+        if (volume < 0f)
+            throw new IllegalArgumentException("Volume not valid: " + volume);
+        masterGain = volume;
+        if(extrasongClip != null) setVolume(extrasongClip, volume);
+        if(songClip != null) setVolume(songClip, volume);
+        if(sfxClip != null) setVolume(sfxClip, volume);
+    }
+
+
+    private static void setVolume(Clip clip, float volume){
+        FloatControl gainControl = (FloatControl) clip.getControl(FloatControl.Type.MASTER_GAIN);        
+        gainControl.setValue(20f * (float) Math.log10(volume));
     }
     
 }

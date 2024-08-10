@@ -40,7 +40,7 @@ public class UINote extends Note {
     public void visPress(){
         presses++;
         pressed = true;
-        String threadName = "Player" + this.dir.getDirectionAsString(CapsMode.UPPER_CAMEL_CASE) + "PressThread" + presses;
+        String threadName = (playerNote ? "Player" : "BadGuy") + this.dir.getDirectionAsString(CapsMode.UPPER_CAMEL_CASE) + "PressThread" + presses;
         Thread pressThread = new Thread(()->{
             try{Thread.sleep(200);}catch(Exception e){e.printStackTrace();}
             pressed = false;

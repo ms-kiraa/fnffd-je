@@ -142,10 +142,19 @@ public class Camera {
                 break;
             } 
         }
-        if(!foundObject) System.out.println("COULD NOT FIND OBJECT WITH DRAW ID " + object.drawID);
+        if(!foundObject) {
+            //System.out.println("COULD NOT FIND OBJECT WITH DRAW ID " + object.drawID);
+        }
         else layers.get(layer).remove(target);
     }
 
+    public int getLayerDepth(String layer) throws IllegalArgumentException {
+        if (!layers.keySet().contains(layer)) {
+            throw new IllegalArgumentException("No layer with the name '" + layer + "' exists!");
+        }
+
+        return layerDepths.get(layer);
+    }
     // camera movement methods
 
     /**

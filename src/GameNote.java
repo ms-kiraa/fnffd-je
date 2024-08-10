@@ -9,6 +9,8 @@ public class GameNote extends Note {
     public boolean shouldDraw = true;
     public boolean drawCap = false;
     private double yy;
+    public boolean autohit = false;
+    public boolean hit = false;
 
     public GameNote(double x, double y, Direction direction, Camera camera, boolean fump, boolean playerNote, NoteType type){
         super(x, y, direction, camera, fump, playerNote);
@@ -46,12 +48,27 @@ public class GameNote extends Note {
                 switch(Stage.instance.songName){
                     case "mus_w3s2":
                         //System.out.println("Tsunami");
-                        if(playerNote) basePath += "buddy/spr_notes3_";
+                        if(playerNote) {
+                            basePath += "buddy/spr_notes3_";
+                            autohit = true;
+                        }
                         else basePath += "spr_bombs_";
                         break;
                     case "mus_channelsurf":
                         //System.out.println("Channelsurfing");
                         basePath += "nermal/spr_bombsn_";
+                        break;
+                    case "mus_w4s1":
+                        if(!playerNote){
+                            basePath = "./img/ui/notes/";
+                            if(!fumpNote){
+                                basePath += "spr_notes_";
+                            } else {
+                                basePath += "fump/spr_notefump_";
+                            }
+                        } else {
+                            basePath += "spr_bombs_";
+                        }
                         break;
                     default:
                         basePath += "spr_bombs_";
@@ -62,7 +79,9 @@ public class GameNote extends Note {
             case ENEMY_CAM:
             case MIDDLE_CAM:
             case AYY:
+                //basePath += "fump/spr_notefump_";
                 shouldDraw = false;
+                autohit = true;
                 break;
             case HOLD:
             case ALT_HOLD:
@@ -71,6 +90,12 @@ public class GameNote extends Note {
                 break;
             case EVENT:
                 basePath += "event/spr_eventnote";
+                autohit = true;
+                break;
+            case END_SONG_TRIGGER:
+                basePath += "spr_noteshold_";
+                autohit = true;
+                //shouldDraw = false;
                 break;
             default:
                 if(!fumpNote){
@@ -103,6 +128,10 @@ public class GameNote extends Note {
         update();
     }
 
+    public boolean isHold(){
+        return (type == NoteType.HOLD || type == NoteType.ALT_HOLD);
+    }
+
     @Override
     protected void update(){
     }
@@ -120,7 +149,7 @@ public class GameNote extends Note {
     }
     
     public enum NoteType {
-        NORMAL, ALT, BOMB, DUDE_CAM, ENEMY_CAM, MIDDLE_CAM, AYY, HOLD, ALT_HOLD, EVENT;
+        NORMAL, ALT, BOMB, DUDE_CAM, ENEMY_CAM, MIDDLE_CAM, AYY, HOLD, ALT_HOLD, EVENT, END_SONG_TRIGGER; // special note used exclusively to end the song
 
         public int toInt(){
             switch(this){

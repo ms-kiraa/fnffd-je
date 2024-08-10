@@ -1,4 +1,5 @@
 import java.awt.Color;
+import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.event.ActionEvent;
@@ -19,8 +20,6 @@ import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.Clip;
-import javax.sound.sampled.LineEvent;
-import javax.sound.sampled.LineListener;
 import javax.swing.AbstractAction;
 import javax.swing.JPanel;
 import javax.swing.KeyStroke;
@@ -29,10 +28,13 @@ import javax.swing.Timer;
 public class Stage extends JPanel {
     Camera cam;
 
-    final int TICK_TIME = 15;
+    final int targetFPS = 60;
+    final int TICK_TIME = 1000/targetFPS;
 
-    Timer redrawTimer;
     int draws = 0;
+
+    int event = 0;
+    int misses = 0;
 
     String songName;
     int bpm;
@@ -40,6 +42,8 @@ public class Stage extends JPanel {
     double songlong;
     double songbeat;
     double songpos;
+
+    long lastTickMillis = System.currentTimeMillis();
 
     ArrayList<ArrayList<GameNote>> curChart;
     ArrayList<ArrayList<Integer>> curChartTypes;
@@ -51,13 +55,21 @@ public class Stage extends JPanel {
 
     Clip song;
 
+    AnimatedGameObject ago;
+
     Timer updateTimer;
     Thread updateThread = new Thread(() -> {
-        updateTimer = new Timer((int)(TICK_TIME*1.6), new ActionListener(){
+        updateTimer = new Timer((int)(TICK_TIME), new ActionListener(){
 
             @Override
             public void actionPerformed(ActionEvent e) {
                 update();
+                repaint();
+                draws++;
+                long elapsed = System.currentTimeMillis() - lastTickMillis;
+                //int currentFPS = 1000 / (int)elapsed;
+                //System.out.println("TIME SINCE LAST TICK: " + elapsed + " ms\nDIFFERENCE FROM TARGET: " + (elapsed - TICK_TIME) + " ms\nCURRENT FPS: " + currentFPS);
+                lastTickMillis = System.currentTimeMillis();
             }
 
         });
@@ -65,25 +77,43 @@ public class Stage extends JPanel {
     });
 
     private GameNote findHittableNoteInLane(boolean playerLane, int lane){
-        System.out.println(lane + (playerLane ? 4 : 0));
+        //System.out.println(lane + (playerLane ? 4 : 0));
         ArrayList<GameNote> laneList = curChart.get(lane + (playerLane ? 4 : 0));
         UINote ui = uiNotes.get(playerLane ? "Player" : "BadGuy").get(lane%4);
         int range = 40;
 
         for(GameNote note : laneList) {
-            if(note.y >= ui.y - range && note.y <= ui.y + range){
+            if(note.y >= ui.y - range && note.y <= ui.y + range && !note.autohit && !note.hit){
                 return note;
             }
         }
         return null;
     }
+    
+    // find what event to execute and do it
+    private void doEvent(){
+        //System.out.println("executing event " + event);
+        switch(songName){
+            case "mus_w4s2":
+                switch(event){
+                    case 0:
+                        System.out.println("PLAYING SFX\\");
+                        SoundManager.playSFX("./snd/snd_firework.wav");
+                        break;
+                }
+                break;
+        }
+        event++;
+    }
 
     private void removeNote(GameNote gn){
-        cam.removeObjectFromLayer("UI", gn);
+        if(gn.isHold()) cam.removeObjectFromLayer("UI hold", gn);
+        else cam.removeObjectFromLayer("UI", gn);
         gn = null;
     }
+
     private void update(){
-        songpos = (song.getMicrosecondPosition() / 1000000.0);
+        songpos = (SoundManager.songClip.getMicrosecondPosition() / 1000000.0);
         double songProgress = songpos / songlong;
         double ymod = (48 + songProgress * songbeat);
 
@@ -96,28 +126,47 @@ public class Stage extends JPanel {
                 if(gn.y < 0-gn.image.getHeight()) {
                     removeNote(gn);
                     iter2.remove();
+                    if(!gn.hit && !gn.autohit) {
+                        System.out.println("possible miss? how will the economy recover");
+                        misses++;
+                    }
                     continue;
                 }
 
-                if(gn.type == GameNote.NoteType.EVENT){
+                if(gn.autohit){
                     //if(Math.round(Math.random()*5) == 2) Main.s = new Stage();
                     if(gn.y <= uiNotes.get("Player").get(3).y) {
-                        System.out.println("dats an event note right htere.");
+                        if(gn.type == GameNote.NoteType.EVENT) {
+                            System.out.println("dats an event note right htere.");
+                            doEvent();
+                        } else if(gn.type == GameNote.NoteType.END_SONG_TRIGGER){
+                            System.out.println("EJNDING SONG!!");
+                            //redrawTimer.stop();
+                            //updateThread.interrupt();
+                            Main.s = new Stage();
+                        }
                         removeNote(gn);
                         iter2.remove();
                         continue;
                     }
                 }
+
                 if(gn.playerNote){
                     // handle player note stuff
                     if( 
-                        (gn.type == GameNote.NoteType.HOLD || gn.type == GameNote.NoteType.ALT_HOLD) && 
+                        (gn.isHold()) && 
                         keysPressed[gn.dir.getDirectionAsInt()] && 
-                        gn.y <= uiNotes.get("Player").get(gn.dir.getDirectionAsInt()).y
+                        gn.y <= uiNotes.get("Player").get(gn.dir.getDirectionAsInt()).y &&
+                        !gn.autohit
                     ){
+                        playAnim(gn);
                         removeNote(gn);
                         iter2.remove();
                         continue;
+                    }
+
+                    if(gn.autohit && gn.y <= uiNotes.get("Player").get(gn.dir.getDirectionAsInt()).y){
+
                     }
                 } else {
                     if(gn.y <= uiNotes.get("BadGuy").get(gn.dir.getDirectionAsInt()).y) {
@@ -133,47 +182,38 @@ public class Stage extends JPanel {
         }
     }
 
-    // prob temp
-    public void playSound(String soundFile) {
-        try{
-            File f = new File(soundFile);
-            AudioInputStream audioIn = AudioSystem.getAudioInputStream(f.toURI().toURL());  
-            song = AudioSystem.getClip();
-            song.open(audioIn);
-            song.start();
-            song.addLineListener(new LineListener() {
-                public void update(LineEvent myLineEvent) {
-                    if (myLineEvent.getType() == LineEvent.Type.STOP)
-                        //if(paused || bar.score == 0) return;
-                        song.close();
-                        /*System.out.println(paused + "BEFORE PAUSEDH AF" + !paused);
-                        // song should be over
-                        // made too much stuff static... can't really do much except close the game
-
-                        if(!Main.gamedOver && !paused) {
-                            if(paused || bar.score == 0) return;
-                            Game.loopExtraSound("snd/mus_game.wav");
-                            FadeManager.fadeOut(Color.BLACK, 1,1,new Runnable() {
-
-                            @Override
-                            public void run() {
-                                System.out.println(paused);
-                                if(Main.gamedOver || paused) {
-                                    System.out.println("UGHHHGHHSDGHUJWHGJUGJHEHRIJGE");
-                                    return;
-                                }
-                                System.out.println("going ocne");
-                                Main.main.toMenuFromGame();
-                            }
-                            });
-                        }*/
-                        
-                }
-            });
-        } catch (Exception e){
-            e.printStackTrace();
+    private void playAnim(GameNote note){
+        if(note != null){
+            String dirStr = note.dir.getDirectionAsString(Note.CapsMode.ALL_LOWERCASE); // wow that is one long line of code
+            //System.out.println("Found note to dedlete");
+            note.hit = true;
+            switch(note.type){
+                case ALT:
+                case ALT_HOLD:
+                    ago.playAnimation(dirStr + "-alt");
+                    break;
+                case NORMAL:
+                case HOLD:
+                    ago.playAnimation(dirStr);
+                    break;
+                default:
+                    break;
+                
+            }
         }
     }
+    private void buttonPress(int dir){
+        if(keysPressed[dir]) return;
+        uiNotes.get("Player").get(dir).visPress();
+        //System.out.println("Im registering a press!");
+
+        GameNote hitNote = findHittableNoteInLane(true, dir);
+        playAnim(hitNote);
+
+        removeNote(hitNote);
+        keysPressed[dir] = true;
+    }
+    
 
     // very very barebones! this is all just for testing tho
 
@@ -204,6 +244,19 @@ public class Stage extends JPanel {
         cam.addObjectToLayer("Background", hb2);
         cam.addObjectToLayer("Background", hb1);
 
+        ago = new AnimatedGameObject(200, 200, 1, cam);
+        // TODO: make more moddable. make the frame data in some parsable text file so you can make reskins :D
+        ago.addAnimationFromSpritesheet("left", 10, "./img/dude/left.png");
+        ago.addAnimationFromSpritesheet("down", 10, "./img/dude/down.png");
+        ago.addAnimationFromSpritesheet("up", 10, "./img/dude/up.png");
+        ago.addAnimationFromSpritesheet("right", 10, "./img/dude/right.png");
+        ago.addAnimationFromSpritesheet("left-alt", 8, "./img/dude/left-alt.png");
+        ago.addAnimationFromSpritesheet("down-alt", 7, "./img/dude/down-alt.png");
+        ago.addAnimationFromSpritesheet("up-alt", 8, "./img/dude/up-alt.png");
+        ago.addAnimationFromSpritesheet("right-alt", 9, "./img/dude/right-alt.png");
+        ago.addAnimationFromSpritesheet("idle", 11, "./img/dude/idle.png");
+        cam.addObjectToLayer("Objects", ago);
+
         this.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_D, 0,false),
                 "leftKeyPress");
             this.getActionMap().put("leftKeyPress",
@@ -211,15 +264,7 @@ public class Stage extends JPanel {
 
 				@Override
 				public void actionPerformed(ActionEvent e) {
-                    if(keysPressed[0]) return;
-					uiNotes.get("Player").get(0).visPress();
-
-                    GameNote hitNote = findHittableNoteInLane(true, 0);
-                    if(hitNote != null){
-                        System.out.println("Found note to dedlete");
-                        removeNote(hitNote);
-                    }
-                    keysPressed[0] = true;
+                    buttonPress(0);
 				}
 
             }
@@ -245,15 +290,7 @@ public class Stage extends JPanel {
 
 				@Override
 				public void actionPerformed(ActionEvent e) {
-                    if(keysPressed[1]) return;
-					uiNotes.get("Player").get(1).visPress();
-
-                    GameNote hitNote = findHittableNoteInLane(true, 1);
-                    if(hitNote != null){
-                        System.out.println("Found note to dedlete");
-                        removeNote(hitNote);
-                    }
-                    keysPressed[1] = true;
+                    buttonPress(1);
 				}
 
             }
@@ -279,15 +316,7 @@ public class Stage extends JPanel {
 
 				@Override
 				public void actionPerformed(ActionEvent e) {
-                    if(keysPressed[2]) return;
-					uiNotes.get("Player").get(2).visPress();
-
-                    GameNote hitNote = findHittableNoteInLane(true, 2);
-                    if(hitNote != null){
-                        System.out.println("Found note to dedlete");
-                        removeNote(hitNote);
-                    }
-                    keysPressed[2] = true;
+                    buttonPress(2);
 				}
 
             }
@@ -313,15 +342,7 @@ public class Stage extends JPanel {
 
 				@Override
 				public void actionPerformed(ActionEvent e) {
-                    if(keysPressed[3]) return;
-					uiNotes.get("Player").get(3).visPress();
-
-                    GameNote hitNote = findHittableNoteInLane(true, 3);
-                    if(hitNote != null){
-                        System.out.println("Found note to dedlete");
-                        removeNote(hitNote);
-                    }
-                    keysPressed[3] = true;
+                    buttonPress(3);
 				}
 
             }
@@ -392,18 +413,18 @@ public class Stage extends JPanel {
             }
         );*/
 
-        redrawTimer = new Timer(15, (e) -> {
-            repaint();
-            draws++;
-        });
-
-        redrawTimer.start();
         String load = "mus/w1s1";
         try{
             load = Files.readString(Paths.get("./SONG_TO_LOAD_NAME.txt"));
         } catch(Exception e){
             e.printStackTrace();
         }
+
+        // make it so hold notes render under normal notes
+        cam.addRenderLayer("UI hold", cam.getLayerDepth("UI")-1);
+        // make it so ui notes render under EVERY ui thing
+        cam.addRenderLayer("UI note", cam.getLayerDepth("UI")-2);
+
         curChart = loadChart(load);
         updateThread.start();
     }
@@ -432,7 +453,13 @@ public class Stage extends JPanel {
             scan.nextLine();
 
             File bleh = new File("./songs/" + songName +".wav");
-            playSound(bleh.getAbsolutePath());
+            SoundManager.playSong(bleh.getAbsolutePath(), new Runnable() {
+                @Override
+                public void run() {
+                    SoundManager.songClip.close();
+                }
+            });
+            SoundManager.setVolume(1.7f);
 
             AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(bleh);
             AudioFormat format = audioInputStream.getFormat();
@@ -464,7 +491,7 @@ public class Stage extends JPanel {
                 }
                 // ui note
                 UINote uin = new UINote(myx, starty, bb%4, cam, (songName.equals("mus_frostbytep2") && bb < 4), bb>=4);
-                cam.addObjectToLayer("UI", uin);
+                cam.addObjectToLayer("UI note", uin);
                 uiNotes.get((bb < 4) ? "BadGuy" : "Player").put(bb%4, uin);
 
                 // FUCKING NOTES BABYYYYY 
@@ -474,11 +501,18 @@ public class Stage extends JPanel {
                     //System.out.println(curChartTypes.get(bb).get(b));
                     if(line != 0){
                         GameNote gn = new GameNote(myx,(48+(b*48*scrollSpeed)), bb%4, cam, (songName.equals("mus_frostbytep2") && bb < 4), bb >= 4, curChartTypes.get(bb).get(b));
-                        cam.addObjectToLayer("UI", gn);
+                        if(gn.isHold()) cam.addObjectToLayer("UI hold", gn);
+                        else cam.addObjectToLayer("UI", gn);
                         ret.get(bb).add(gn);
                     }
                 }
             }
+            // wip
+            /*
+            GameNote gn = new GameNote(234+50+(60*3),(48+((songlong-1)*48*scrollSpeed)), 3, cam, false, true, GameNote.NoteType.END_SONG_TRIGGER);
+            cam.addObjectToLayer("UI", gn);
+            ret.get(7).add(gn);
+            */
 
             scan.close();
             return ret;
@@ -498,5 +532,9 @@ public class Stage extends JPanel {
         cam.drawViewport((Graphics2D) g);
         //cam.changeCameraZoom(-0.005);
         //cam.moveCamera(Math.cos(draws/5)*10, Math.sin(draws/5)*10);
+
+        g.setFont(new Font("Comic Sans MS", Font.PLAIN, 16));
+        g.setColor(Color.white);
+        g.drawString("misses: " + misses, 50, 50);
     }
 }
