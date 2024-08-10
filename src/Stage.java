@@ -93,8 +93,20 @@ public class Stage extends JPanel {
     // find what event to execute and do it
     private void doEvent(){
         //System.out.println("executing event " + event);
-        switch(songName){
-            case "mus_w4s2":
+        switch(songName.substring(4)){
+            case "breakitdown":
+                switch(event){
+                    case 6:
+                        // SWITCH ANIMS !!!
+                        ago.animations.clear();
+                        ago.addAnimationFromSpritesheet("left", 5, "./img/dude-bid/left.png");
+                        ago.addAnimationFromSpritesheet("down", 5, "./img/dude-bid/down.png");
+                        ago.addAnimationFromSpritesheet("up", 5, "./img/dude-bid/up.png");
+                        ago.addAnimationFromSpritesheet("right", 5, "./img/dude-bid/right.png");
+                    break;
+                }
+                break;
+            case "w4s2":
                 switch(event){
                     case 0:
                         System.out.println("PLAYING SFX\\");
@@ -113,6 +125,10 @@ public class Stage extends JPanel {
     }
 
     private void update(){
+        if(keysPressed[0]) cam.moveCameraX(-1);  
+        if(keysPressed[1]) cam.moveCameraY(1);
+        if(keysPressed[2]) cam.moveCameraY(-1);
+        if(keysPressed[3]) cam.moveCameraX(1);
         songpos = (SoundManager.songClip.getMicrosecondPosition() / 1000000.0);
         double songProgress = songpos / songlong;
         double ymod = (48 + songProgress * songbeat);
@@ -137,7 +153,7 @@ public class Stage extends JPanel {
                     //if(Math.round(Math.random()*5) == 2) Main.s = new Stage();
                     if(gn.y <= uiNotes.get("Player").get(3).y) {
                         if(gn.type == GameNote.NoteType.EVENT) {
-                            System.out.println("dats an event note right htere.");
+                            System.out.println("dats an event note right htere. " + event);
                             doEvent();
                         } else if(gn.type == GameNote.NoteType.END_SONG_TRIGGER){
                             System.out.println("EJNDING SONG!!");
@@ -159,7 +175,7 @@ public class Stage extends JPanel {
                         gn.y <= uiNotes.get("Player").get(gn.dir.getDirectionAsInt()).y &&
                         !gn.autohit
                     ){
-                        playAnim(gn);
+                        playDudeAnim(gn);
                         removeNote(gn);
                         iter2.remove();
                         continue;
@@ -182,7 +198,7 @@ public class Stage extends JPanel {
         }
     }
 
-    private void playAnim(GameNote note){
+    private void playDudeAnim(GameNote note){
         if(note != null){
             String dirStr = note.dir.getDirectionAsString(Note.CapsMode.ALL_LOWERCASE); // wow that is one long line of code
             //System.out.println("Found note to dedlete");
@@ -202,15 +218,27 @@ public class Stage extends JPanel {
             }
         }
     }
+
+    private void playDudeMissAnim(int dir){
+        //System.out.println("playing miss anim");
+        String dirStr = Note.Direction.getIntAsDirection(dir).getDirectionAsString(Note.CapsMode.ALL_LOWERCASE); // wow that is one long line of code
+        ago.playAnimation(dirStr + "-miss");
+    }
+
     private void buttonPress(int dir){
         if(keysPressed[dir]) return;
         uiNotes.get("Player").get(dir).visPress();
         //System.out.println("Im registering a press!");
 
         GameNote hitNote = findHittableNoteInLane(true, dir);
-        playAnim(hitNote);
-
-        removeNote(hitNote);
+        if(hitNote != null) {
+            playDudeAnim(hitNote);
+            removeNote(hitNote);
+        } else {
+            playDudeMissAnim(dir);
+            misses++;
+            SoundManager.playSFX("./snd/snd_owch.wav", 1.15f);
+        }
         keysPressed[dir] = true;
     }
     
@@ -250,6 +278,10 @@ public class Stage extends JPanel {
         ago.addAnimationFromSpritesheet("down", 10, "./img/dude/down.png");
         ago.addAnimationFromSpritesheet("up", 10, "./img/dude/up.png");
         ago.addAnimationFromSpritesheet("right", 10, "./img/dude/right.png");
+        ago.addAnimationFromSpritesheet("left-miss", 3, "./img/dude/left-miss.png");
+        ago.addAnimationFromSpritesheet("down-miss", 3, "./img/dude/down-miss.png");
+        ago.addAnimationFromSpritesheet("up-miss", 3, "./img/dude/up-miss.png");
+        ago.addAnimationFromSpritesheet("right-miss", 3, "./img/dude/right-miss.png");
         ago.addAnimationFromSpritesheet("left-alt", 8, "./img/dude/left-alt.png");
         ago.addAnimationFromSpritesheet("down-alt", 7, "./img/dude/down-alt.png");
         ago.addAnimationFromSpritesheet("up-alt", 8, "./img/dude/up-alt.png");

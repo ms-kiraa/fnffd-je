@@ -3,18 +3,42 @@ import java.io.File;
 import javax.sound.sampled.*;
 
 public class SoundManager {
-    public static Clip songClip;
-    public static Clip extrasongClip;
-    public static Clip sfxClip;
+    public static Clip songClip = null;
+    public static Clip extrasongClip = null;
+    //public static Clip sfxClip = null;
 
     private static float masterGain = 1f;
 
     public static void playSFX(String soundFile) {
         try {
             AudioInputStream audioIn = AudioSystem.getAudioInputStream(new File(soundFile));
-            sfxClip = AudioSystem.getClip();
+            Clip sfxClip = AudioSystem.getClip();
             sfxClip.open(audioIn);
             sfxClip.start();
+            setVolume(sfxClip, masterGain);
+            
+            sfxClip.addLineListener(new LineListener() {
+                public void update(LineEvent myLineEvent) {
+                    if (myLineEvent.getType() == LineEvent.Type.STOP) {
+                        sfxClip.close();
+                    }
+                }
+            });
+
+            setVolume(sfxClip, masterGain);
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.err.println(soundFile);
+        }
+    }
+
+    public static void playSFX(String soundFile, float gain) {
+        try {
+            AudioInputStream audioIn = AudioSystem.getAudioInputStream(new File(soundFile));
+            Clip sfxClip = AudioSystem.getClip();
+            sfxClip.open(audioIn);
+            sfxClip.start();
+            setVolume(sfxClip, masterGain*gain);
             
             sfxClip.addLineListener(new LineListener() {
                 public void update(LineEvent myLineEvent) {
@@ -80,7 +104,7 @@ public class SoundManager {
         masterGain = volume;
         if(extrasongClip != null) setVolume(extrasongClip, volume);
         if(songClip != null) setVolume(songClip, volume);
-        if(sfxClip != null) setVolume(sfxClip, volume);
+        //if(sfxClip != null) setVolume(sfxClip, volume);
     }
 
 
