@@ -1,0 +1,6 @@
+left:6
+down:6
+up:6
+right:6
+ayy:1
+idle:9

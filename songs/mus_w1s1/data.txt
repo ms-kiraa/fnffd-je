@@ -1,0 +1,4 @@
+name:summer
+dude-char:dude-bid
+badguy-char:strad
+noteskin:default

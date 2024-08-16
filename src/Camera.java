@@ -111,7 +111,7 @@ public class Camera {
         for(Integer val : vals) {
             orderToDraw.add(getKeyFromDepth(val));
         }
-        System.out.println(orderToDraw);
+        //System.out.println(orderToDraw);
     }
 
     /**

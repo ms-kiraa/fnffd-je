@@ -1,0 +1,14 @@
+left:10
+down:10
+up:10
+right:10
+left-miss:3
+down-miss:3
+up-miss:3
+right-miss:3
+left-alt:8
+down-alt:7
+up-alt:8
+right-alt:9
+ayy:10
+idle:11

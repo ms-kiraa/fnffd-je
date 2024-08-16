@@ -1,0 +1,14 @@
+left:-11,5
+down:-16,1
+up:-15,-11
+right:-11,-5
+left-miss:-10,4
+down-miss:-16,1
+up-miss:-15,-8
+right-miss:-12,-5
+left-alt:-25,-16
+down-alt:-8,-10
+up-alt:-9,-37
+right-alt:-5,-16
+ayy:8,-4
+idle:0,0

@@ -1,0 +1,2 @@
+idle-left:0,0
+idle-right:4,0

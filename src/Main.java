@@ -1,5 +1,8 @@
 import javax.swing.*;
+
 import java.awt.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 public class Main extends JFrame {
 
@@ -14,8 +17,18 @@ public class Main extends JFrame {
     public static MainMenu mm;
     public static Stage s;
 
+    public static final int targetFPS = 60;
+    public static final int TICK_TIME = 1000/targetFPS;
+
     private Main(String title){
         super(title);
+        String load = "false";
+        try{
+            load = Files.readString(Paths.get("./LOAD_OFFSET_EDITOR.txt"));
+        } catch(Exception e){
+            e.printStackTrace();
+        }
+        boolean offset = Boolean.parseBoolean(load);
 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
@@ -23,8 +36,12 @@ public class Main extends JFrame {
         setLayout(new BorderLayout());
         setResizable(false);
 
-        s = new Stage();
-        getContentPane().add(s, BorderLayout.CENTER);
+        if(!offset){
+            s = new Stage();
+            getContentPane().add(s, BorderLayout.CENTER);
+        } else {
+            getContentPane().add(new AnimationOffsetPanel(), BorderLayout.CENTER);
+        }
 
         pack();
         

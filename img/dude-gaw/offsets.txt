@@ -1,0 +1,9 @@
+left:0,0
+down:0,5
+up:0,-1
+right:0,1
+left-miss:-28,-2
+down-miss:-1,1
+up-miss:-9,-12
+right-miss:5,-2
+idle:0,0

@@ -1,0 +1,6 @@
+left:0,-1
+down:0,2
+up:1,-2
+right:-3,0
+ayy:0,0
+idle:0,0

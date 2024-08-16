@@ -1,0 +1,10 @@
+left:-31,10
+down:-1,18
+up:2,12
+right:10,16
+left-alt:-6,1
+down-alt:-3,21
+up-alt:-19,2
+right-alt:4,8
+ayy:-13,7
+idle:0,0

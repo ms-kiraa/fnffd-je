@@ -1,0 +1,2 @@
+idle-left:5
+idle-right:5

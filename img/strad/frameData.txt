@@ -1,0 +1,10 @@
+left:8
+down:8
+up:1
+right:8
+left-alt:9
+down-alt:8
+up-alt:9
+right-alt:9
+ayy:1
+idle:9

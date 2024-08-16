@@ -1,5 +1,3 @@
-import java.awt.AlphaComposite;
-import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
 //import java.util.*;
@@ -8,7 +6,6 @@ import javax.imageio.ImageIO;
 
 public class UINote extends Note {
     
-    private boolean pressed = false;
     public static int presses = 0;
 
     public UINote(double x, double y, Direction direction, Camera camera, boolean fump, boolean playerNote){
@@ -39,17 +36,20 @@ public class UINote extends Note {
 
     public void visPress(){
         presses++;
-        pressed = true;
+        alpha = 0.3f;
         String threadName = (playerNote ? "Player" : "BadGuy") + this.dir.getDirectionAsString(CapsMode.UPPER_CAMEL_CASE) + "PressThread" + presses;
         Thread pressThread = new Thread(()->{
             try{Thread.sleep(200);}catch(Exception e){e.printStackTrace();}
-            pressed = false;
+            alpha = 1f;
         });
         pressThread.setName(threadName);
         pressThread.start();
     }
 
-    @Override
+    /*
+     * commented out cause i redid how alpha works for gameobjects lul
+     */
+    /*@Override
     public void render(Graphics2D g, Camera cam) {
         AlphaComposite oldAC = (AlphaComposite) g.getComposite();
         if(pressed){
@@ -58,5 +58,5 @@ public class UINote extends Note {
         }
         super.render(g, cam);
         if(pressed) g.setComposite(oldAC);
-    }
+    }*/
 }

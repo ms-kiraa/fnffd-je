@@ -1,0 +1,6 @@
+left:-42,9
+down:-4,11
+up:-5,-13
+right:1,1
+idle-left:0,0
+idle-right:0,0

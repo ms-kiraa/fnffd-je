@@ -1,0 +1,4 @@
+name:twinkle
+dude-char:dude
+badguy-char:buddy
+noteskin:default

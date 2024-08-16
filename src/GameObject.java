@@ -21,6 +21,8 @@ public class GameObject {
     public Rectangle bounds;
     public BufferedImage image;
 
+    public float alpha = 1;
+
     public Camera cam;
 
     public int drawID = -1;
@@ -98,7 +100,11 @@ public class GameObject {
     
         // Draw the image with the new calculated positions
         // the stupid zoom doesnt work very well but thats ok ill barely use it
+        Composite pre = g.getComposite();
+        AlphaComposite ac = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha);
+        g.setComposite(ac);
         g.drawImage(img, (int) imgPosX, (int) imgPosY, (int) ((img.getWidth()*scale) * cam.scaleFactor), (int) ((img.getHeight()*scale) * cam.scaleFactor), null);
+        g.setComposite(pre);
     }
 
     private void recalculateBounds(){

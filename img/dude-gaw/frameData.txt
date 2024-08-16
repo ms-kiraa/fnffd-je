@@ -1,0 +1,9 @@
+left:7
+down:7
+up:7
+right:7
+left-miss:5
+down-miss:5
+up-miss:5
+right-miss:5
+idle:7

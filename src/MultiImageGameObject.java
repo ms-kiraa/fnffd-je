@@ -7,7 +7,7 @@ public class MultiImageGameObject extends GameObject {
     private int displayedImage;
 
     public MultiImageGameObject(double x, double y, double scale, Camera cam, ArrayList<BufferedImage> images, int startingFrame) {
-        super(x,y,scale,null,cam);
+        super(x,y,scale,images.get(0),cam);
         this.images = images;
         this.displayedImage = Math.clamp(startingFrame, 0, images.size());
         setImage(images.get(displayedImage));

@@ -1,0 +1,4 @@
+name:I, Robot
+dude-char:dude-gaw
+badguy-char:teachvee
+noteskin:gaw

@@ -14,6 +14,8 @@ import java.util.HashMap;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.imageio.ImageIO;
 import javax.sound.sampled.AudioFormat;
@@ -27,9 +29,6 @@ import javax.swing.Timer;
 
 public class Stage extends JPanel {
     Camera cam;
-
-    final int targetFPS = 60;
-    final int TICK_TIME = 1000/targetFPS;
 
     int draws = 0;
 
@@ -55,11 +54,33 @@ public class Stage extends JPanel {
 
     Clip song;
 
-    AnimatedGameObject ago;
+    AnimatedGameObject dude;
+    String dudeChar = "dude";
+    boolean dudeLeftRightIdleStyle = false;
+
+    AnimatedGameObject badguy;
+    String badguyChar = "strad";
+    boolean badguyLeftRightIdleStyle = false;
+
+    AnimatedGameObject lady;
+    MultiImageGameObject speakers; // say hello to the first use of MultiImageGameObject since it was added however many months ago
+    int ladyLastBopDir = 0; // 0 = left 1 = right
+    boolean speakersChangeOnBeatHit;
+    boolean ladyLeftRightIdleStyle = true;
+
+    int beat = -1;
+    int halfBeatInSteps = 0;
+    int step = 0;
+    int dudeLastIdleBeat = -10;
+    int dudeLastIdleDir = 0;
+    int badguyLastIdleBeat = -10;
+    int badguylastIdleDir = 0;
+
+    Map<String, GameObject> stageObjects = new HashMap<>();
 
     Timer updateTimer;
     Thread updateThread = new Thread(() -> {
-        updateTimer = new Timer((int)(TICK_TIME), new ActionListener(){
+        updateTimer = new Timer((int)(Main.TICK_TIME), new ActionListener(){
 
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -83,7 +104,7 @@ public class Stage extends JPanel {
         int range = 40;
 
         for(GameNote note : laneList) {
-            if(note.y >= ui.y - range && note.y <= ui.y + range && !note.autohit && !note.hit){
+            if((note.y+note.image.getHeight()/2) >= ui.y - range && note.y <= ui.y + range && !note.autohit && !note.hit){
                 return note;
             }
         }
@@ -98,11 +119,11 @@ public class Stage extends JPanel {
                 switch(event){
                     case 6:
                         // SWITCH ANIMS !!!
-                        ago.animations.clear();
-                        ago.addAnimationFromSpritesheet("left", 5, "./img/dude-bid/left.png");
-                        ago.addAnimationFromSpritesheet("down", 5, "./img/dude-bid/down.png");
-                        ago.addAnimationFromSpritesheet("up", 5, "./img/dude-bid/up.png");
-                        ago.addAnimationFromSpritesheet("right", 5, "./img/dude-bid/right.png");
+                        dude.animations.clear();
+                        dude.addAnimationFromSpritesheet("left", 5, "./img/dude-bid/left.png");
+                        dude.addAnimationFromSpritesheet("down", 5, "./img/dude-bid/down.png");
+                        dude.addAnimationFromSpritesheet("up", 5, "./img/dude-bid/up.png");
+                        dude.addAnimationFromSpritesheet("right", 5, "./img/dude-bid/right.png");
                     break;
                 }
                 break;
@@ -125,14 +146,63 @@ public class Stage extends JPanel {
     }
 
     private void update(){
-        if(keysPressed[0]) cam.moveCameraX(-1);  
-        if(keysPressed[1]) cam.moveCameraY(1);
-        if(keysPressed[2]) cam.moveCameraY(-1);
-        if(keysPressed[3]) cam.moveCameraX(1);
+        //System.out.println("Oughh");
+        /*
+        if(keysPressed[0]) badguy.x -= 1; 
+        if(keysPressed[1]) badguy.y += 1;
+        if(keysPressed[2]) badguy.y -= 1;
+        if(keysPressed[3]) badguy.x += 1;
+        System.out.println(badguy.x + " " + badguy.y);
+        //*/
         songpos = (SoundManager.songClip.getMicrosecondPosition() / 1000000.0);
         double songProgress = songpos / songlong;
+        Conductor.setTime(songpos);
+        //System.out.println(Conductor.getCrochetSec());
         double ymod = (48 + songProgress * songbeat);
 
+        //System.out.println(Conductor.getBeat());
+        
+        if(beat != Conductor.getBeat()){
+            //System.out.println(Conductor.getStep());
+            //System.out.println("oughhhh my beatssss");
+            if(speakersChangeOnBeatHit) speakers.displayNextImage();
+            beat = Conductor.getBeat();
+        }
+        if(Conductor.getStep() != step) {
+            step = Conductor.getStep();
+            if(step % 2 == 0) {
+                if(ladyLastBopDir == 0) {
+                    lady.playAnimation("idle-right");
+                } else {
+                    lady.playAnimation("idle-left");
+                }
+                ladyLastBopDir = (ladyLastBopDir + 1) % 2;
+            }
+            if(beat - badguyLastIdleBeat >= 2  && step % (badguyLeftRightIdleStyle ? 2 : 4) == 0) {
+                if(!badguyLeftRightIdleStyle){
+                    badguy.playAnimation("idle");
+                } else {
+                    if(badguylastIdleDir == 0){
+                        badguy.playAnimation("idle-right");
+                    } else {
+                        badguy.playAnimation("idle-left");
+                    }
+                    badguylastIdleDir = (badguylastIdleDir + 1) % 2;
+                }
+            }
+            if(beat - dudeLastIdleBeat >= 2 && step % (dudeLeftRightIdleStyle ? 2 : 4) == 0) {
+                if(!dudeLeftRightIdleStyle){
+                    dude.playAnimation("idle");
+                } else {
+                    if(dudeLastIdleDir == 0){
+                        dude.playAnimation("idle-right");
+                    } else {
+                        dude.playAnimation("idle-left");
+                    }
+                    dudeLastIdleDir = (dudeLastIdleDir + 1) % 2;
+                }
+            }
+        }
         ListIterator<ArrayList<GameNote>> iter1 = curChart.listIterator();
         while (iter1.hasNext()){
             ListIterator<GameNote> iter2 = iter1.next().listIterator();
@@ -155,11 +225,31 @@ public class Stage extends JPanel {
                         if(gn.type == GameNote.NoteType.EVENT) {
                             System.out.println("dats an event note right htere. " + event);
                             doEvent();
+                        } else if(gn.type == GameNote.NoteType.AYY){
+                            if(gn.playerNote){
+                                if(dude.hasAnimation("ayy")) {
+                                    dude.playAnimation("ayy");
+                                    dudeLastIdleBeat = beat;
+                                }
+                                File ayy = new File("./img/"+dudeChar+"/ayy.wav");
+                                if(ayy.exists()){
+                                    SoundManager.playSFX(ayy.getAbsolutePath());
+                                }
+                            } else {
+                                if(badguy.hasAnimation("ayy")) {
+                                    badguy.playAnimation("ayy");
+                                    badguyLastIdleBeat = beat;
+                                }
+                                File ayy = new File("./img/"+badguyChar+"/ayy.wav");
+                                if(ayy.exists()){
+                                    SoundManager.playSFX(ayy.getAbsolutePath());
+                                }
+                            }
                         } else if(gn.type == GameNote.NoteType.END_SONG_TRIGGER){
                             System.out.println("EJNDING SONG!!");
                             //redrawTimer.stop();
                             //updateThread.interrupt();
-                            Main.s = new Stage();
+                            //Main.s = new Stage();
                         }
                         removeNote(gn);
                         iter2.remove();
@@ -188,6 +278,7 @@ public class Stage extends JPanel {
                     if(gn.y <= uiNotes.get("BadGuy").get(gn.dir.getDirectionAsInt()).y) {
                         if(gn.type == GameNote.NoteType.NORMAL || gn.type == GameNote.NoteType.ALT)
                             uiNotes.get("BadGuy").get(gn.dir.getDirectionAsInt()).visPress();
+                        playBadGuyAnim(gn);
                         removeNote(gn);
                         iter2.remove();
                         continue;
@@ -200,17 +291,50 @@ public class Stage extends JPanel {
 
     private void playDudeAnim(GameNote note){
         if(note != null){
-            String dirStr = note.dir.getDirectionAsString(Note.CapsMode.ALL_LOWERCASE); // wow that is one long line of code
+            dudeLastIdleBeat = beat;
+            dudeLastIdleDir = 1; // set next dir to left (aka resetting)
+            String dirStr = note.dir.getDirectionAsString(Note.CapsMode.ALL_LOWERCASE);
             //System.out.println("Found note to dedlete");
             note.hit = true;
             switch(note.type){
                 case ALT:
                 case ALT_HOLD:
-                    ago.playAnimation(dirStr + "-alt");
+                    if(dude.hasAnimation(dirStr + "-alt")){
+                        dude.playAnimation(dirStr + "-alt");
+                    } else {
+                        dude.playAnimation(dirStr);
+                    }
                     break;
                 case NORMAL:
                 case HOLD:
-                    ago.playAnimation(dirStr);
+                    dude.playAnimation(dirStr);
+                    break;
+                default:
+                    break;
+                
+            }
+        }
+    }
+
+    private void playBadGuyAnim(GameNote note){
+        if(note != null){
+            badguyLastIdleBeat = beat;
+            badguylastIdleDir = 1; // set next dir to left (aka resetting)
+            String dirStr = note.dir.getDirectionAsString(Note.CapsMode.ALL_LOWERCASE);
+            //System.out.println("Found note to dedlete");
+            note.hit = true;
+            switch(note.type){
+                case ALT:
+                case ALT_HOLD:
+                    if(badguy.hasAnimation(dirStr + "-alt")){
+                        badguy.playAnimation(dirStr + "-alt");
+                    } else {
+                        badguy.playAnimation(dirStr);
+                    }
+                    break;
+                case NORMAL:
+                case HOLD:
+                    badguy.playAnimation(dirStr);
                     break;
                 default:
                     break;
@@ -222,7 +346,7 @@ public class Stage extends JPanel {
     private void playDudeMissAnim(int dir){
         //System.out.println("playing miss anim");
         String dirStr = Note.Direction.getIntAsDirection(dir).getDirectionAsString(Note.CapsMode.ALL_LOWERCASE); // wow that is one long line of code
-        ago.playAnimation(dirStr + "-miss");
+        if(dude.hasAnimation(dirStr + "-miss")) dude.playAnimation(dirStr + "-miss");
     }
 
     private void buttonPress(int dir){
@@ -241,54 +365,425 @@ public class Stage extends JPanel {
         }
         keysPressed[dir] = true;
     }
+
+    private Map<String, Boolean> getAnimationData(String charName){
+        File animData = new File("./img/" + charName + "/animData.txt");
+        Map<String, Boolean> ret = new HashMap<>();
+        ret.put("has-arrow-poses", true);
+        ret.put("has-alts", false);
+        ret.put("has-misses", false);
+        ret.put("has-ayy", false);
+        ret.put("left-right-idle", false);
+
+        if(animData.exists()){
+            Scanner dataScanner = null;
+            try{
+                dataScanner = new Scanner(animData);
+                while(dataScanner.hasNextLine()){
+                    String next = dataScanner.nextLine();
+                    String[] colonSplit = next.split(":");
+                    ret.put(colonSplit[0], Boolean.parseBoolean(colonSplit[1]));
+                }
+            } catch(Exception e){
+                e.printStackTrace();
+                if(dataScanner != null) dataScanner.close();
+            }
+        }
+
+        return ret;
+    }
+
+    private int getFrameData(String anim, String charName){
+        File frameData = new File("./img/" + charName + "/frameData.txt");
+        if(frameData.exists()){
+            Scanner frameScanner = null;
+            int ret = 1;
+            try{
+                frameScanner = new Scanner(frameData);
+                while(frameScanner.hasNextLine()){
+                    String next = frameScanner.next();
+                    String sub = next.substring(0, Math.min(anim.length(), next.length()));
+                    if(sub.equals(anim)){
+                        ret = Integer.parseInt(next.split(":")[1]);
+                        frameScanner.close();
+                        return ret;
+                    }
+                }
+                frameScanner.close();
+                return ret;
+            } catch(Exception e){
+                e.printStackTrace();
+                if(frameScanner != null) frameScanner.close();
+            }
+        }
+        // we didnt find anything for it
+        System.err.println("I DIDNT FIND ANYTHINGGGGGG");
+        return 1;
+    }
     
+    private void loadDudeCharacter(String charName){
+        // first things first, get all the info
+        Map<String, Boolean> data = getAnimationData(charName);
+        boolean hasPoses = data.get("has-arrow-poses");
+        boolean hasAlts = data.get("has-alts");
+        boolean hasMisses = data.get("has-misses");
+        boolean hasAyy = data.get("has-ayy");
+        boolean leftRightIdle = data.get("left-right-idle");
+        dude = new AnimatedGameObject(525, 290, 1, cam);
+        dude.addAnimationFromSpritesheet("left", getFrameData("left", charName), "./img/"+charName+"/left.png");
+        dude.addAnimationFromSpritesheet("down", getFrameData("down", charName), "./img/"+charName+"/down.png");
+        dude.addAnimationFromSpritesheet("up", getFrameData("up", charName), "./img/"+charName+"/up.png");
+        dude.addAnimationFromSpritesheet("right", getFrameData("right", charName), "./img/"+charName+"/right.png");
+        if(hasMisses){
+            dude.addAnimationFromSpritesheet("left-miss", getFrameData("left-miss", charName), "./img/"+charName+"/left-miss.png");
+            dude.addAnimationFromSpritesheet("down-miss", getFrameData("down-miss", charName), "./img/"+charName+"/down-miss.png");
+            dude.addAnimationFromSpritesheet("up-miss", getFrameData("up-miss", charName), "./img/"+charName+"/up-miss.png");
+            dude.addAnimationFromSpritesheet("right-miss", getFrameData("right-miss", charName), "./img/"+charName+"/right-miss.png");
+        }
+        if(hasAlts){
+            dude.addAnimationFromSpritesheet("left-alt", getFrameData("left-alt", charName), "./img/"+charName+"/left-alt.png");
+            dude.addAnimationFromSpritesheet("down-alt", getFrameData("down-alt", charName), "./img/"+charName+"/down-alt.png");
+            dude.addAnimationFromSpritesheet("up-alt", getFrameData("up-alt", charName), "./img/"+charName+"/up-alt.png");
+            dude.addAnimationFromSpritesheet("right-alt", getFrameData("right-alt", charName), "./img/"+charName+"/right-alt.png");
+        }
+        if(hasAyy) dude.addAnimationFromSpritesheet("ayy", getFrameData("ayy", charName), "./img/"+charName+"/ayy.png");
+        if(!leftRightIdle){
+            dude.addAnimationFromSpritesheet("idle", getFrameData("idle", charName), "./img/"+charName+"/idle.png");
+        } else {
+            dude.addAnimationFromSpritesheet("idle-left", getFrameData("idle-left", charName), "./img/"+charName+"/idle-left.png");
+            dude.addAnimationFromSpritesheet("idle-right", getFrameData("idle-right", charName), "./img/"+charName+"/idle-right.png");
+        }
+        dudeLeftRightIdleStyle = leftRightIdle;
+        cam.addObjectToLayer("Objects", dude);
 
-    // very very barebones! this is all just for testing tho
+        File offsets = new File("./img/"+charName+"/offsets.txt");
+        if(offsets.exists()){
+            Scanner offsetScan = null;
+            try{
+                offsetScan = new Scanner(offsets);
+                while(offsetScan.hasNext()){
+                    String line = offsetScan.nextLine();
+                    String[] colonSplit = line.split(":");
+                    dude.addOffset(colonSplit[0], Integer.parseInt(colonSplit[1].split(",")[0]), Integer.parseInt(colonSplit[1].split(",")[1]));
+                }
+                offsetScan.close();
+            } catch (Exception e){
+                e.printStackTrace();
+                if(offsetScan != null) offsetScan.close();
+            }
+        }
+        String idle = "idle";
+        if(!dude.animations.containsKey("idle")) idle = "idle-left";
+        dude.setPosition(dude.x, dude.y - dude.animations.get(idle).get(0).getHeight());
+    }
 
-    public Stage(){
-        instance = this;
-        cam = new Camera(); // testing
-        
-        BufferedImage bi = new BufferedImage(10, 10, BufferedImage.TYPE_INT_ARGB);
-        try{
-            bi = ImageIO.read(new File("./img/stages/w1/houseback1.png"));
-        } catch(Exception e){}
+    // this is DUMB!
+    public static boolean isInteger(String s) {
+        try { 
+            Integer.parseInt(s); 
+        } catch(NumberFormatException e) { 
+            return false; 
+        } catch(NullPointerException e) {
+            return false;
+        }
+        // only got here if we didn't return false
+        return true;
+    }
 
-        //ArrayList<String> layers = new ArrayList<>(Arrays.asList("Objects", "Background", "UI"));
-        
-        /*for(int i = 0; i < 500; i++) {
-            GameObject obj = new GameObject(Math.round(Math.random()*800), Math.round(Math.random()*800), 1, bi, cam);
+    private Map<String, Object> getLadyConfig(String lady){
+        Map<String, Object> ret = new HashMap<>();
+        ret.put("draw-speakers", true);
+        ret.put("draw-lady", true);
+        ret.put("speakers-change-on-beat-hit", true);
+        ret.put("lady-x-offset", 0);
+        ret.put("lady-y-offset", 0);
+        File configFile = new File("./img/"+lady+"/ladyConfig.txt");
+        if(configFile.exists()){
+            Scanner configScanner = null;
+            try{
+                configScanner = new Scanner(configFile);
+                while(configScanner.hasNextLine()){
+                    String line = configScanner.nextLine();
+                    String[] split = line.split(":");
+                    if(isInteger(split[1])){
+                        ret.put(split[0], Integer.parseInt(split[1]));
+                    } else {
+                        // its hopefully just bool
+                        ret.put(split[0], Boolean.parseBoolean(split[1]));
+                    }
+                }
+            } catch(Exception e){
+                e.printStackTrace();
+                if(configScanner != null) configScanner.close();
+            }
+        }
+        return ret;
+    }
 
-            cam.addObjectToLayer(layers.get((int)(Math.random() * layers.size())), obj);
-        }*/
+    private void loadLadyCharacter(String charName){
+        // first things first, get all the info
+        Map<String, Boolean> data = getAnimationData(charName);
+        boolean hasPoses = data.get("has-arrow-poses");
+        boolean hasAlts = data.get("has-alts");
+        boolean hasMisses = data.get("has-misses");
+        boolean hasAyy = data.get("has-ayy");
+        boolean leftRightIdle = data.get("left-right-idle");
 
-        GameObject hb1 = new GameObject(0, 0, 1, bi, cam);
-        try{
-            bi = ImageIO.read(new File("./img/stages/w1/houseback2.png"));
-        } catch(Exception e){}
-        GameObject hb2 = new GameObject(-50, 30, 1, bi, cam);
-        hb2.scrollFactor = 0.7;
-        cam.setBackground(new Color(145, 207, 221));
-        cam.addObjectToLayer("Background", hb2);
-        cam.addObjectToLayer("Background", hb1);
+        Map<String, Object> config = getLadyConfig(charName);
+        boolean drawSpeakers = (boolean) config.get("draw-speakers");
+        boolean drawLady = (boolean) config.get("draw-lady");
+        speakersChangeOnBeatHit = (boolean) config.get("speakers-change-on-beat-hit");
+        int ladyXOffset = (int) config.get("lady-x-offset");
+        int ladyYOffset = (int) config.get("lady-y-offset");
 
-        ago = new AnimatedGameObject(200, 200, 1, cam);
-        // TODO: make more moddable. make the frame data in some parsable text file so you can make reskins :D
-        ago.addAnimationFromSpritesheet("left", 10, "./img/dude/left.png");
-        ago.addAnimationFromSpritesheet("down", 10, "./img/dude/down.png");
-        ago.addAnimationFromSpritesheet("up", 10, "./img/dude/up.png");
-        ago.addAnimationFromSpritesheet("right", 10, "./img/dude/right.png");
-        ago.addAnimationFromSpritesheet("left-miss", 3, "./img/dude/left-miss.png");
-        ago.addAnimationFromSpritesheet("down-miss", 3, "./img/dude/down-miss.png");
-        ago.addAnimationFromSpritesheet("up-miss", 3, "./img/dude/up-miss.png");
-        ago.addAnimationFromSpritesheet("right-miss", 3, "./img/dude/right-miss.png");
-        ago.addAnimationFromSpritesheet("left-alt", 8, "./img/dude/left-alt.png");
-        ago.addAnimationFromSpritesheet("down-alt", 7, "./img/dude/down-alt.png");
-        ago.addAnimationFromSpritesheet("up-alt", 8, "./img/dude/up-alt.png");
-        ago.addAnimationFromSpritesheet("right-alt", 9, "./img/dude/right-alt.png");
-        ago.addAnimationFromSpritesheet("idle", 11, "./img/dude/idle.png");
-        cam.addObjectToLayer("Objects", ago);
+        lady = new AnimatedGameObject(400, 250, 1, cam);
+        if(hasPoses){
+            lady.addAnimationFromSpritesheet("left", getFrameData("left", charName), "./img/"+charName+"/left.png");
+            lady.addAnimationFromSpritesheet("down", getFrameData("down", charName), "./img/"+charName+"/down.png");
+            lady.addAnimationFromSpritesheet("up", getFrameData("up", charName), "./img/"+charName+"/up.png");
+            lady.addAnimationFromSpritesheet("right", getFrameData("right", charName), "./img/"+charName+"/right.png");
+        }
+        if(hasMisses){
+            lady.addAnimationFromSpritesheet("left-miss", getFrameData("left-miss", charName), "./img/"+charName+"/left-miss.png");
+            lady.addAnimationFromSpritesheet("down-miss", getFrameData("down-miss", charName), "./img/"+charName+"/down-miss.png");
+            lady.addAnimationFromSpritesheet("up-miss", getFrameData("up-miss", charName), "./img/"+charName+"/up-miss.png");
+            lady.addAnimationFromSpritesheet("right-miss", getFrameData("right-miss", charName), "./img/"+charName+"/right-miss.png");
+        }
+        if(hasAlts){
+            lady.addAnimationFromSpritesheet("left-alt", getFrameData("left-alt", charName), "./img/"+charName+"/left-alt.png");
+            lady.addAnimationFromSpritesheet("down-alt", getFrameData("down-alt", charName), "./img/"+charName+"/down-alt.png");
+            lady.addAnimationFromSpritesheet("up-alt", getFrameData("up-alt", charName), "./img/"+charName+"/up-alt.png");
+            lady.addAnimationFromSpritesheet("right-alt", getFrameData("right-alt", charName), "./img/"+charName+"/right-alt.png");
+        }
+        if(hasAyy) lady.addAnimationFromSpritesheet("ayy", getFrameData("ayy", charName), "./img/"+charName+"/ayy.png");
+        if(!leftRightIdle){
+            lady.addAnimationFromSpritesheet("idle", getFrameData("idle", charName), "./img/"+charName+"/idle.png");
+        } else {
+            lady.addAnimationFromSpritesheet("idle-right", getFrameData("idle-right", charName), "./img/"+charName+"/idle-right.png");
+            lady.addAnimationFromSpritesheet("idle-left", getFrameData("idle-left", charName), "./img/"+charName+"/idle-left.png");
+        }
+        ladyLeftRightIdleStyle = leftRightIdle;
+        if(drawLady) cam.addObjectToLayer("Objects", lady);
 
+        File offsets = new File("./img/"+charName+"/offsets.txt");
+        if(offsets.exists()){
+            Scanner offsetScan = null;
+            try{
+                offsetScan = new Scanner(offsets);
+                while(offsetScan.hasNext()){
+                    String line = offsetScan.nextLine();
+                    String[] colonSplit = line.split(":");
+                    lady.addOffset(colonSplit[0], Integer.parseInt(colonSplit[1].split(",")[0]), Integer.parseInt(colonSplit[1].split(",")[1]));
+                }
+                offsetScan.close();
+            } catch (Exception e){
+                e.printStackTrace();
+                if(offsetScan != null) offsetScan.close();
+            }
+        }
+        lady.setPosition(lady.x, lady.y - lady.animations.get(leftRightIdle ? "idle-left" : "idle").get(0).getHeight());
+        ArrayList<BufferedImage> speakerFrames = new ArrayList<>();
+        File speakersFolder = new File("./img/"+charName+"/speakers");
+        if(speakersFolder.exists()){
+            File[] frames = speakersFolder.listFiles();
+            for(File frame : frames){
+                if(frame.isFile()){
+                    try{
+                        speakerFrames.add(ImageIO.read(frame));
+                    } catch(Exception e){
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+        BufferedImage dumbFrame = lady.animations.get("idle-left").get(0);
+        speakers = new MultiImageGameObject(lady.x+dumbFrame.getWidth()/2, lady.y+dumbFrame.getHeight(), 1, cam, speakerFrames, 0);
+        if(drawSpeakers) cam.addObjectToLayer("Speakers", speakers);
+        speakers.setPosition(speakers.x-speakerFrames.get(0).getWidth()/2, speakers.y - (speakerFrames.get(0).getHeight()/3)*2);
+        for(String key : lady.animations.keySet()){
+            lady.addOffset(key, lady.offsets.get(key)[0] + ladyXOffset, lady.offsets.get(key)[1] + ladyYOffset);
+        }
+    }
+
+    private void loadBadGuyCharacter(String charName){
+        // first things first, get all the info
+        Map<String, Boolean> data = getAnimationData(charName);
+        boolean hasPoses = data.get("has-arrow-poses");
+        boolean hasAlts = data.get("has-alts");
+        boolean hasMisses = data.get("has-misses");
+        boolean hasAyy = data.get("has-ayy");
+        boolean leftRightIdle = data.get("left-right-idle");
+        badguy = new AnimatedGameObject(260, 290, 1, cam);
+        if(hasPoses){
+            badguy.addAnimationFromSpritesheet("left", getFrameData("left", charName), "./img/"+charName+"/left.png");
+            badguy.addAnimationFromSpritesheet("down", getFrameData("down", charName), "./img/"+charName+"/down.png");
+            badguy.addAnimationFromSpritesheet("up", getFrameData("up", charName), "./img/"+charName+"/up.png");
+            badguy.addAnimationFromSpritesheet("right", getFrameData("right", charName), "./img/"+charName+"/right.png");
+        }
+        if(hasMisses){
+            badguy.addAnimationFromSpritesheet("left-miss", getFrameData("left-miss", charName), "./img/"+charName+"/left-miss.png");
+            badguy.addAnimationFromSpritesheet("down-miss", getFrameData("down-miss", charName), "./img/"+charName+"/down-miss.png");
+            badguy.addAnimationFromSpritesheet("up-miss", getFrameData("up-miss", charName), "./img/"+charName+"/up-miss.png");
+            badguy.addAnimationFromSpritesheet("right-miss", getFrameData("right-miss", charName), "./img/"+charName+"/right-miss.png");
+        }
+        if(hasAlts){
+            badguy.addAnimationFromSpritesheet("left-alt", getFrameData("left-alt", charName), "./img/"+charName+"/left-alt.png");
+            badguy.addAnimationFromSpritesheet("down-alt", getFrameData("down-alt", charName), "./img/"+charName+"/down-alt.png");
+            badguy.addAnimationFromSpritesheet("up-alt", getFrameData("up-alt", charName), "./img/"+charName+"/up-alt.png");
+            badguy.addAnimationFromSpritesheet("right-alt", getFrameData("right-alt", charName), "./img/"+charName+"/right-alt.png");
+        }
+        if(hasAyy) badguy.addAnimationFromSpritesheet("ayy", getFrameData("ayy", charName), "./img/"+charName+"/ayy.png");
+        if(!leftRightIdle){
+            badguy.addAnimationFromSpritesheet("idle", getFrameData("idle", charName), "./img/"+charName+"/idle.png");
+        } else {
+            badguy.addAnimationFromSpritesheet("idle-right", getFrameData("idle-right", charName), "./img/"+charName+"/idle-right.png");
+            badguy.addAnimationFromSpritesheet("idle-left", getFrameData("idle-left", charName), "./img/"+charName+"/idle-left.png");
+        }
+        badguyLeftRightIdleStyle = leftRightIdle;
+        cam.addObjectToLayer("Objects", badguy);
+
+        File offsets = new File("./img/"+charName+"/offsets.txt");
+        if(offsets.exists()){
+            Scanner offsetScan = null;
+            try{
+                offsetScan = new Scanner(offsets);
+                while(offsetScan.hasNext()){
+                    String line = offsetScan.nextLine();
+                    String[] colonSplit = line.split(":");
+                    String[] commaSplit = colonSplit[1].split(",");
+                    badguy.addOffset(colonSplit[0], Integer.parseInt(commaSplit[0]), Integer.parseInt(commaSplit[1]));
+                }
+                offsetScan.close();
+            } catch (Exception e){
+                e.printStackTrace();
+                if(offsetScan != null) offsetScan.close();
+            }
+        }
+        // get dem feet on the ground!
+        String idle = "idle";
+        if(!badguy.animations.containsKey("idle")) idle = "idle-left";
+        dude.setPosition(badguy.x, badguy.y - badguy.animations.get(idle).get(0).getHeight());
+    }
+
+    private void loadStageFile(String path){
+        String stagePath = path + "/stage/";
+        File stage = new File(stagePath + "stage.txt");
+        System.out.println(stage.getAbsolutePath());
+        if(stage.exists()){
+            ArrayList<String> instructions = new ArrayList<>();
+            Scanner stageScanner = null;
+            try{
+                stageScanner = new Scanner(stage);
+                while (stageScanner.hasNextLine()) {
+                    String next = stageScanner.nextLine();
+                    instructions.add(next);
+                }
+                stageScanner.close();
+            } catch(Exception e){
+                e.printStackTrace();
+                if(stageScanner != null) stageScanner.close();
+            }
+            String findQuoteTextRegex = "\"(.*?)\""; // allow for either 'this quote' or "this quote"
+            for(String instruction : instructions) {
+                /*
+                 * current command list
+                 * make sprite
+                 * set sprite scroll factor
+                 * set dude x and y
+                 * set badguy x and y
+                 * change background of camera (sky thing)
+                 */
+                // TODO: this is probably a shitty way to do this, this uses substring SEVENTEEN FUCKING TIMES, find places to replace it with split() or something
+                if(instruction.toLowerCase().startsWith("make sprite")){ // make sprite
+                    // get the FUCKING parameters
+                    Pattern p = Pattern.compile(findQuoteTextRegex); // find text in quotes, will be used for image and name
+                    Matcher m = p.matcher(instruction);
+                    m.find();
+                    String img = m.group(1);
+                    //System.out.println(img);
+                    BufferedImage bi = null;
+                    try{
+                        bi = ImageIO.read(new File(stagePath + img));
+                    }catch(Exception e){
+                        e.printStackTrace();
+                        System.out.println(stagePath + img);
+                        continue;
+                    }
+                    // get x and y
+                    int x, y = 0;
+                    Pattern pp = Pattern.compile("(-?[0-9]+),\\s*(-?[0-9]+)"); // hee hee pp
+                    Matcher mm = pp.matcher(instruction);
+                    mm.find();
+                    x = Integer.parseInt(mm.group(1));
+                    y = Integer.parseInt(mm.group(2));
+                    System.out.println(x + " " + y);
+                    // finally get name
+                    m.find();
+                    String name = m.group(1);
+                    //System.out.println(name);
+                    // make dat object
+                    GameObject made = new GameObject(x, y, 1, bi, cam);
+                    cam.addObjectToLayer("Background", made);
+                    stageObjects.put(name, made);
+                } else if(instruction.toLowerCase().startsWith("set scroll factor")){ // set scroll factor
+                    //System.out.println("gotta set dat scroll!");
+                    Pattern p = Pattern.compile(findQuoteTextRegex);
+                    Matcher m = p.matcher(instruction);
+                    m.find();
+                    String name = m.group(1);
+
+                    Pattern pp = Pattern.compile("([0-9]+\\.?[0-9]*)"); // looks for decimal nums
+                    Matcher mm = pp.matcher(instruction);
+                    mm.find(instruction.lastIndexOf("\""));
+                    double newFactor = Double.parseDouble(mm.group(1));
+                    System.out.println(newFactor);
+                    stageObjects.get(name).scrollFactor = newFactor;
+                } else if(instruction.toLowerCase().startsWith("set camera background")){
+                    // TODO: add other support
+                    System.out.println(instruction.substring(instruction.indexOf("TO ")+3, instruction.indexOf("\"")));
+                    switch(instruction.substring(instruction.indexOf("TO ")+3, instruction.indexOf("\""))){
+                        default: // hex
+                            // only supported thing atm lul!
+                            Pattern p = Pattern.compile(findQuoteTextRegex);
+                            Matcher m = p.matcher(instruction);
+                            m.find();
+                            String hex = m.group(1);
+                            System.out.println(hex);
+                            cam.setBackground(Color.decode("#" + hex.toLowerCase()));
+                            break;
+                    }
+                } else if(instruction.toLowerCase().startsWith("set dude")){ // set a property of dude
+                    System.out.println(Character.toString(instruction.charAt(9)));
+                    setPropertyOfAnimatedObject(instruction, dude);
+                } else if(instruction.toLowerCase().startsWith("set badguy")){ // set a property of badguy
+                    setPropertyOfAnimatedObject(instruction, badguy);
+                } else if(instruction.toLowerCase().startsWith("set lady")) {
+                    System.out.println("laddyyyyy");
+                    setPropertyOfAnimatedObject(instruction, lady);
+                } else {
+                    System.out.println("wtf does " + instruction + " mean");
+                }
+            }
+        }
+    }
+
+    private void setPropertyOfAnimatedObject(String instruction, AnimatedGameObject obj){
+        String param = instruction.substring(instruction.indexOf("TO")-2);
+        if(param.startsWith("X")){
+            double x = Double.parseDouble(instruction.substring(instruction.indexOf("TO ")+3));
+            obj.setPosition(x, obj.y);
+        } else if(param.startsWith("Y")){
+            double y = Double.parseDouble(instruction.substring(instruction.indexOf("TO ")+3));
+            String idle = "idle";
+            // if it doesnt have the normal "idle" animation, assume it's in left-right style
+            if(!obj.animations.containsKey("idle")) idle = "idle-left";
+            obj.setPosition(obj.x, y - obj.animations.get(idle).get(0).getHeight());
+        } else {
+            System.out.println("???");
+        }
+    }
+
+    private void setBinds(){
         this.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_D, 0,false),
                 "leftKeyPress");
             this.getActionMap().put("leftKeyPress",
@@ -444,13 +939,61 @@ public class Stage extends JPanel {
 
             }
         );*/
+    }
 
-        String load = "mus/w1s1";
+    private Map<String, String> parseSongData(String path){
+        Map<String, String> ret = new HashMap<>();
+        Scanner dataScanner = null;
+        File dataFile = new File(path);
+        if(dataFile.exists()){
+            try{
+                dataScanner = new Scanner(dataFile);
+                while(dataScanner.hasNextLine()){
+                    String next = dataScanner.nextLine();
+                    String[] colonSplit = next.split(":");
+                    String key = colonSplit[0];
+                    String val = colonSplit[1];
+                    ret.put(key, val);
+                }
+            }catch(Exception e){
+                e.printStackTrace();
+                if(dataScanner != null) dataScanner.close();
+            }
+        }
+        return ret;
+    }
+
+    // very very barebones! this is all just for testing tho
+
+    public Stage(){
+        instance = this;
+        cam = new Camera(); // testing
+        cam.setCameraPos(168, -128);
+        setBinds();
+
+        String load = "mus_w1s1";
         try{
             load = Files.readString(Paths.get("./SONG_TO_LOAD_NAME.txt"));
         } catch(Exception e){
             e.printStackTrace();
         }
+
+        try{
+            //System.out.println(data);
+        } catch(Exception e){
+            e.printStackTrace();
+        }
+
+        Map<String, String> songData = parseSongData("./songs/"+load+"/data.txt");
+
+        dudeChar = songData.containsKey("dude-char") ? songData.get("dude-char") : "dude";
+        loadDudeCharacter(dudeChar);
+        badguyChar = songData.containsKey("badguy-char") ? songData.get("badguy-char") : "strad";
+        loadBadGuyCharacter(badguyChar);
+        cam.addRenderLayer("Speakers", cam.getLayerDepth("Background")+1);
+        loadLadyCharacter("lady");
+
+        loadStageFile("./songs/" + load);
 
         // make it so hold notes render under normal notes
         cam.addRenderLayer("UI hold", cam.getLayerDepth("UI")-1);
@@ -469,7 +1012,7 @@ public class Stage extends JPanel {
         Scanner scan = null;
         this.songName = songName;
         try{
-            String fileName = "./charts/" + songName + ".swows";
+            String fileName = "./songs/" + songName + "/" + songName + ".swows";
 
             scan = new Scanner(new File(fileName));
             // skip the uuseless line
@@ -477,6 +1020,7 @@ public class Stage extends JPanel {
 
             bpm = scan.nextInt();
             System.out.println(bpm);
+            Conductor.bpm = bpm;
 
             scrollSpeed = scan.nextDouble();
             System.out.println(scrollSpeed);
@@ -484,13 +1028,14 @@ public class Stage extends JPanel {
             // skip another useless line
             scan.nextLine();
 
-            File bleh = new File("./songs/" + songName +".wav");
+            File bleh = new File("./songs/" + songName + "/" + songName +".wav");
             SoundManager.playSong(bleh.getAbsolutePath(), new Runnable() {
                 @Override
                 public void run() {
                     SoundManager.songClip.close();
                 }
             });
+            //testTimer.start();
             SoundManager.setVolume(1.7f);
 
             AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(bleh);
@@ -535,7 +1080,21 @@ public class Stage extends JPanel {
                         GameNote gn = new GameNote(myx,(48+(b*48*scrollSpeed)), bb%4, cam, (songName.equals("mus_frostbytep2") && bb < 4), bb >= 4, curChartTypes.get(bb).get(b));
                         if(gn.isHold()) cam.addObjectToLayer("UI hold", gn);
                         else cam.addObjectToLayer("UI", gn);
-                        ret.get(bb).add(gn);
+                        ret.get(bb).addLast(gn);
+                    } else {
+                        continue;
+                        // TODO: THIS DOESNT WORK. WHY???
+                        /*try{
+                            if(ret.get(bb).get(b-1).type == GameNote.NoteType.HOLD || 
+                               ret.get(bb).get(b-1).type == GameNote.NoteType.ALT_HOLD) {
+                                System.out.println("Dat note needs cap!");
+                                ret.get(bb).get(b-1).drawCap = true;
+                            }
+                        }
+                        catch(IndexOutOfBoundsException ioobe){
+                            ioobe.printStackTrace();
+                            System.out.println("ITS THAT BUG AGAIN");
+                        }*/
                     }
                 }
             }

@@ -1,0 +1,5 @@
+draw-speakers:true
+draw-lady:true
+speakers-change-on-beat-hit:true
+lady-x-offset:-5
+lady-y-offset:1
