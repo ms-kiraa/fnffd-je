@@ -1,4 +1,4 @@
 name:summer
-dude-char:dude-bid
+dude-char:dude
 badguy-char:strad
 noteskin:default

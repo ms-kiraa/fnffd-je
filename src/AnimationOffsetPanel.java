@@ -135,7 +135,7 @@ public class AnimationOffsetPanel extends JPanel {
         ago = new AnimatedGameObject(0, 0, 1, cam);
         String charName = "dude";
         try{
-            charName = Files.readString(Paths.get("./DUDE_CHAR_TO_LOAD.txt"));
+            charName = Files.readString(Paths.get("./OFFSET_CHAR_TO_LOAD.txt"));
         } catch(Exception e){
             e.printStackTrace();
         }
