@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.Scanner;
 
 import javax.swing.AbstractAction;
+import javax.swing.JCheckBox;
 import javax.swing.JPanel;
 import javax.swing.KeyStroke;
 import javax.swing.Timer;
@@ -25,6 +26,7 @@ public class AnimationOffsetPanel extends JPanel {
     Camera cam;
     AnimatedGameObject ago;
     AnimatedGameObject ghost;
+    boolean ghostDisplayed = true;
     ArrayList<String> anims = new ArrayList<>();
     int curAnim = 0;
     ArrayList<int[]> offsets = new ArrayList<>();
@@ -74,14 +76,27 @@ public class AnimationOffsetPanel extends JPanel {
         }
     }
 
-    private Map<String, Boolean> getAnimationData(String charName){
+    private boolean isDouble(String s) {
+        try { 
+            Double.parseDouble(s); 
+        } catch(NumberFormatException e) { 
+            return false; 
+        } catch(NullPointerException e) {
+            return false;
+        }
+        // only got here if we didn't return false
+        return true;
+    }
+
+    private Map<String, Object> getAnimationData(String charName){
         File animData = new File("./img/" + charName + "/animData.txt");
-        Map<String, Boolean> ret = new HashMap<>();
+        Map<String, Object> ret = new HashMap<>();
         ret.put("has-arrow-poses", true);
         ret.put("has-alts", false);
         ret.put("has-misses", false);
         ret.put("has-ayy", false);
         ret.put("left-right-idle", false);
+        ret.put("scale", 1.0);
 
         if(animData.exists()){
             Scanner dataScanner = null;
@@ -89,7 +104,8 @@ public class AnimationOffsetPanel extends JPanel {
                 dataScanner = new Scanner(animData);
                 while(dataScanner.hasNextLine()){
                     String next = dataScanner.nextLine();
-                    ret.put(next.substring(0, next.indexOf(":")), Boolean.parseBoolean(next.substring(next.indexOf(":")+1)));
+                    String[] colonSplit = next.split(":");
+                    ret.put(colonSplit[0], (isDouble(colonSplit[1]) ? Double.parseDouble(colonSplit[1]) : Boolean.parseBoolean(colonSplit[1])));
                 }
             } catch(Exception e){
                 e.printStackTrace();
@@ -132,20 +148,20 @@ public class AnimationOffsetPanel extends JPanel {
     public AnimationOffsetPanel(){
         cam = new Camera();
         cam.setCameraPos(-200, -200);
-        ago = new AnimatedGameObject(0, 0, 1, cam);
         String charName = "dude";
         try{
             charName = Files.readString(Paths.get("./OFFSET_CHAR_TO_LOAD.txt"));
         } catch(Exception e){
             e.printStackTrace();
         }
-        Map<String, Boolean> data = getAnimationData(charName);
-        boolean hasPoses = data.get("has-arrow-poses");
-        boolean hasAlts = data.get("has-alts");
-        boolean hasMisses = data.get("has-misses");
-        boolean hasAyy = data.get("has-ayy");
-        boolean leftRightIdle = data.get("left-right-idle");
-        ago = new AnimatedGameObject(0, 0, 1, cam);
+        Map<String, Object> data = getAnimationData(charName);
+        boolean hasPoses = (boolean) data.get("has-arrow-poses");
+        boolean hasAlts = (boolean) data.get("has-alts");
+        boolean hasMisses = (boolean) data.get("has-misses");
+        boolean hasAyy = (boolean) data.get("has-ayy");
+        boolean leftRightIdle = (boolean) data.get("left-right-idle");
+        double scale = (double) data.get("scale");
+        ago = new AnimatedGameObject(0, 0, scale, cam);
         if(hasPoses){
             ago.addAnimationFromSpritesheet("left", getFrameData("left", charName), "./img/"+charName+"/left.png");
             ago.addAnimationFromSpritesheet("down", getFrameData("down", charName), "./img/"+charName+"/down.png");
@@ -180,7 +196,7 @@ public class AnimationOffsetPanel extends JPanel {
             anims.addAll(Arrays.asList("idle-left", "idle-right"));
         }
 
-        ghost = new AnimatedGameObject(0, 0, 1, cam);
+        ghost = new AnimatedGameObject(0, 0, scale, cam);
         if(!leftRightIdle){
             ghost.addAnimationFromSpritesheet("idle", getFrameData("idle", charName), "./img/"+charName+"/idle.png");
         } else {
@@ -191,7 +207,6 @@ public class AnimationOffsetPanel extends JPanel {
         cam.addObjectToLayer("Objects", ago);
 
         cam.addObjectToLayer("Background", ghost);
-        cam.addObjectToLayer("Objects", ago);
 
         for(int i = 0; i < anims.size(); i++){
             int[] arr = {0,0};
@@ -323,12 +338,35 @@ public class AnimationOffsetPanel extends JPanel {
             }
         );
 
+        // add silly little buttons
+        JCheckBox toggleGhost = new JCheckBox("show ghost");
+        toggleGhost.setFocusable(false);
+        toggleGhost.setSelected(true);
+        toggleGhost.setFont(new Font("Comic Sans MS", Font.ITALIC, 18));
+        toggleGhost.addActionListener((a)->{
+            if(ghostDisplayed){
+                cam.removeObjectFromLayer("Background", ghost);
+                ghostDisplayed = false;
+            } else {
+                cam.addObjectToLayer("Background", ghost);
+                ghostDisplayed = true;
+            }
+        });
+        this.setLayout(null);
+        toggleGhost.setBounds(600, 10, 150, 40);
+        this.add(toggleGhost);
+        /*JTextField setGhost = new JTextField("Set Ghost Frame", 1);
+        setGhost.setBounds(600, 40, 150, 20);
+        setGhost.addActionListener((a)->{
+            System.out.println(setGhost.getText());
+        });
+        this.add(setGhost);*/
         ago.playAnimation(anims.get(curAnim));
         updateThread.start();
     }
 
     private void moveGuy(double x, double y){
-        System.out.println("eek");
+        //System.out.println("eek");
         int[] set = offsets.get(curAnim);
         set[0] += x;
         set[1] += y;

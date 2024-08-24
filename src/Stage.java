@@ -1,5 +1,7 @@
+import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Font;
+import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.event.ActionEvent;
@@ -28,6 +30,11 @@ import javax.swing.KeyStroke;
 import javax.swing.Timer;
 
 public class Stage extends JPanel {
+    // loading
+    boolean loading = false;
+    String loadingStep = "null";
+    int curLoadStep = 0;
+    int maxLoadStep = 5;
     Camera cam;
 
     int draws = 0;
@@ -63,6 +70,7 @@ public class Stage extends JPanel {
     boolean badguyLeftRightIdleStyle = false;
 
     AnimatedGameObject lady;
+    String ladyChar = "lady";
     MultiImageGameObject speakers; // say hello to the first use of MultiImageGameObject since it was added however many months ago
     int ladyLastBopDir = 0; // 0 = left 1 = right
     boolean speakersChangeOnBeatHit;
@@ -76,6 +84,10 @@ public class Stage extends JPanel {
     int badguyLastIdleBeat = -10;
     int badguylastIdleDir = 0;
 
+    boolean downscroll = true;
+    int downscrollYMod = downscroll ? -1 : 1;
+    int uiNotesYPos = downscroll ? 480-38 : 38;
+
     Map<String, GameObject> stageObjects = new HashMap<>();
 
     Timer updateTimer;
@@ -84,10 +96,10 @@ public class Stage extends JPanel {
 
             @Override
             public void actionPerformed(ActionEvent e) {
-                update();
+                if(!loading) update();
                 repaint();
                 draws++;
-                long elapsed = System.currentTimeMillis() - lastTickMillis;
+                //long elapsed = System.currentTimeMillis() - lastTickMillis; // probably will be used eventually
                 //int currentFPS = 1000 / (int)elapsed;
                 //System.out.println("TIME SINCE LAST TICK: " + elapsed + " ms\nDIFFERENCE FROM TARGET: " + (elapsed - TICK_TIME) + " ms\nCURRENT FPS: " + currentFPS);
                 lastTickMillis = System.currentTimeMillis();
@@ -118,12 +130,12 @@ public class Stage extends JPanel {
             case "breakitdown":
                 switch(event){
                     case 6:
-                        // SWITCH ANIMS !!!
+                        /*// SWITCH ANIMS !!!
                         dude.animations.clear();
                         dude.addAnimationFromSpritesheet("left", 5, "./img/dude-bid/left.png");
                         dude.addAnimationFromSpritesheet("down", 5, "./img/dude-bid/down.png");
                         dude.addAnimationFromSpritesheet("up", 5, "./img/dude-bid/up.png");
-                        dude.addAnimationFromSpritesheet("right", 5, "./img/dude-bid/right.png");
+                        dude.addAnimationFromSpritesheet("right", 5, "./img/dude-bid/right.png");*/
                     break;
                 }
                 break;
@@ -158,7 +170,7 @@ public class Stage extends JPanel {
         double songProgress = songpos / songlong;
         Conductor.setTime(songpos);
         //System.out.println(Conductor.getCrochetSec());
-        double ymod = (48 + songProgress * songbeat);
+        double ymod = ((uiNotesYPos+songProgress * songbeat)*downscrollYMod);
 
         //System.out.println(Conductor.getBeat());
         
@@ -171,14 +183,18 @@ public class Stage extends JPanel {
         if(Conductor.getStep() != step) {
             step = Conductor.getStep();
             if(step % 2 == 0) {
-                if(ladyLastBopDir == 0) {
-                    lady.playAnimation("idle-right");
+                if(ladyLeftRightIdleStyle){
+                    if(ladyLastBopDir == 0) {
+                        lady.playAnimation("idle-right");
+                    } else {
+                        lady.playAnimation("idle-left");
+                    }
+                    ladyLastBopDir = (ladyLastBopDir + 1) % 2;
                 } else {
-                    lady.playAnimation("idle-left");
+                    lady.playAnimation("idle");
                 }
-                ladyLastBopDir = (ladyLastBopDir + 1) % 2;
             }
-            if(beat - badguyLastIdleBeat >= 2  && step % (badguyLeftRightIdleStyle ? 2 : 4) == 0) {
+            if(beat - badguyLastIdleBeat >= 2  && step % 4 == 0) {
                 if(!badguyLeftRightIdleStyle){
                     badguy.playAnimation("idle");
                 } else {
@@ -190,7 +206,7 @@ public class Stage extends JPanel {
                     badguylastIdleDir = (badguylastIdleDir + 1) % 2;
                 }
             }
-            if(beat - dudeLastIdleBeat >= 2 && step % (dudeLeftRightIdleStyle ? 2 : 4) == 0) {
+            if(beat - dudeLastIdleBeat >= 2 && step % 4 == 0) {
                 if(!dudeLeftRightIdleStyle){
                     dude.playAnimation("idle");
                 } else {
@@ -209,7 +225,8 @@ public class Stage extends JPanel {
             while(iter2.hasNext()){
                 GameNote gn = iter2.next();
                 gn.move(ymod);
-                if(gn.y < 0-gn.image.getHeight()) {
+                boolean missCondition = (downscroll) ? (gn.y > getHeight()+gn.image.getHeight()) : (gn.y < 0-gn.image.getHeight());
+                if(missCondition) {
                     removeNote(gn);
                     iter2.remove();
                     if(!gn.hit && !gn.autohit) {
@@ -221,7 +238,9 @@ public class Stage extends JPanel {
 
                 if(gn.autohit){
                     //if(Math.round(Math.random()*5) == 2) Main.s = new Stage();
-                    if(gn.y <= uiNotes.get("Player").get(3).y) {
+                    boolean autohitCondition = (downscroll) ? (gn.y >= uiNotesYPos) : (gn.y <= uiNotesYPos);
+                    if(autohitCondition && !gn.hit) {
+                        gn.hit = true;
                         if(gn.type == GameNote.NoteType.EVENT) {
                             System.out.println("dats an event note right htere. " + event);
                             doEvent();
@@ -247,9 +266,10 @@ public class Stage extends JPanel {
                             }
                         } else if(gn.type == GameNote.NoteType.END_SONG_TRIGGER){
                             System.out.println("EJNDING SONG!!");
-                            //redrawTimer.stop();
-                            //updateThread.interrupt();
-                            //Main.s = new Stage();
+                            SoundManager.songClip.close();
+                            updateTimer.stop();
+                            updateThread.interrupt();
+                            Main.main.goToStage();
                         }
                         removeNote(gn);
                         iter2.remove();
@@ -259,10 +279,11 @@ public class Stage extends JPanel {
 
                 if(gn.playerNote){
                     // handle player note stuff
+                    boolean holdHitCondition = (downscroll) ? (gn.y >= uiNotes.get("Player").get(gn.dir.getDirectionAsInt()).y) : (gn.y <= uiNotes.get("Player").get(gn.dir.getDirectionAsInt()).y);
                     if( 
                         (gn.isHold()) && 
                         keysPressed[gn.dir.getDirectionAsInt()] && 
-                        gn.y <= uiNotes.get("Player").get(gn.dir.getDirectionAsInt()).y &&
+                        holdHitCondition &&
                         !gn.autohit
                     ){
                         playDudeAnim(gn);
@@ -275,7 +296,8 @@ public class Stage extends JPanel {
 
                     }
                 } else {
-                    if(gn.y <= uiNotes.get("BadGuy").get(gn.dir.getDirectionAsInt()).y) {
+                    boolean badguyHitCondition = (downscroll) ? (gn.y >= uiNotes.get("BadGuy").get(gn.dir.getDirectionAsInt()).y) : (gn.y <= uiNotes.get("BadGuy").get(gn.dir.getDirectionAsInt()).y);
+                    if(badguyHitCondition) {
                         if(gn.type == GameNote.NoteType.NORMAL || gn.type == GameNote.NoteType.ALT)
                             uiNotes.get("BadGuy").get(gn.dir.getDirectionAsInt()).visPress();
                         playBadGuyAnim(gn);
@@ -345,6 +367,8 @@ public class Stage extends JPanel {
 
     private void playDudeMissAnim(int dir){
         //System.out.println("playing miss anim");
+        dudeLastIdleBeat = beat;
+        dudeLastIdleDir = 1;
         String dirStr = Note.Direction.getIntAsDirection(dir).getDirectionAsString(Note.CapsMode.ALL_LOWERCASE); // wow that is one long line of code
         if(dude.hasAnimation(dirStr + "-miss")) dude.playAnimation(dirStr + "-miss");
     }
@@ -366,14 +390,27 @@ public class Stage extends JPanel {
         keysPressed[dir] = true;
     }
 
-    private Map<String, Boolean> getAnimationData(String charName){
+    private boolean isDouble(String s) {
+        try { 
+            Double.parseDouble(s); 
+        } catch(NumberFormatException e) { 
+            return false; 
+        } catch(NullPointerException e) {
+            return false;
+        }
+        // only got here if we didn't return false
+        return true;
+    }
+
+    private Map<String, Object> getAnimationData(String charName){
         File animData = new File("./img/" + charName + "/animData.txt");
-        Map<String, Boolean> ret = new HashMap<>();
+        Map<String, Object> ret = new HashMap<>();
         ret.put("has-arrow-poses", true);
         ret.put("has-alts", false);
         ret.put("has-misses", false);
         ret.put("has-ayy", false);
         ret.put("left-right-idle", false);
+        ret.put("scale", 1.0);
 
         if(animData.exists()){
             Scanner dataScanner = null;
@@ -382,7 +419,7 @@ public class Stage extends JPanel {
                 while(dataScanner.hasNextLine()){
                     String next = dataScanner.nextLine();
                     String[] colonSplit = next.split(":");
-                    ret.put(colonSplit[0], Boolean.parseBoolean(colonSplit[1]));
+                    ret.put(colonSplit[0], (isDouble(colonSplit[1]) ? Double.parseDouble(colonSplit[1]) : Boolean.parseBoolean(colonSplit[1])));
                 }
             } catch(Exception e){
                 e.printStackTrace();
@@ -423,17 +460,20 @@ public class Stage extends JPanel {
     
     private void loadDudeCharacter(String charName){
         // first things first, get all the info
-        Map<String, Boolean> data = getAnimationData(charName);
-        boolean hasPoses = data.get("has-arrow-poses");
-        boolean hasAlts = data.get("has-alts");
-        boolean hasMisses = data.get("has-misses");
-        boolean hasAyy = data.get("has-ayy");
-        boolean leftRightIdle = data.get("left-right-idle");
-        dude = new AnimatedGameObject(525, 290, 1, cam);
-        dude.addAnimationFromSpritesheet("left", getFrameData("left", charName), "./img/"+charName+"/left.png");
-        dude.addAnimationFromSpritesheet("down", getFrameData("down", charName), "./img/"+charName+"/down.png");
-        dude.addAnimationFromSpritesheet("up", getFrameData("up", charName), "./img/"+charName+"/up.png");
-        dude.addAnimationFromSpritesheet("right", getFrameData("right", charName), "./img/"+charName+"/right.png");
+        Map<String, Object> data = getAnimationData(charName);
+        boolean hasPoses = (boolean) data.get("has-arrow-poses");
+        boolean hasAlts = (boolean) data.get("has-alts");
+        boolean hasMisses = (boolean) data.get("has-misses");
+        boolean hasAyy = (boolean) data.get("has-ayy");
+        boolean leftRightIdle = (boolean) data.get("left-right-idle");
+        double scale = (double) data.get("scale");
+        dude = new AnimatedGameObject(525, 290, scale, cam);
+        if(hasPoses){
+            dude.addAnimationFromSpritesheet("left", getFrameData("left", charName), "./img/"+charName+"/left.png");
+            dude.addAnimationFromSpritesheet("down", getFrameData("down", charName), "./img/"+charName+"/down.png");
+            dude.addAnimationFromSpritesheet("up", getFrameData("up", charName), "./img/"+charName+"/up.png");
+            dude.addAnimationFromSpritesheet("right", getFrameData("right", charName), "./img/"+charName+"/right.png");
+        }
         if(hasMisses){
             dude.addAnimationFromSpritesheet("left-miss", getFrameData("left-miss", charName), "./img/"+charName+"/left-miss.png");
             dude.addAnimationFromSpritesheet("down-miss", getFrameData("down-miss", charName), "./img/"+charName+"/down-miss.png");
@@ -474,11 +514,11 @@ public class Stage extends JPanel {
         }
         String idle = "idle";
         if(!dude.animations.containsKey("idle")) idle = "idle-left";
-        dude.setPosition(dude.x, dude.y - dude.animations.get(idle).get(0).getHeight());
+        dude.setPosition(dude.x, dude.y - dude.animations.get(idle).get(0).getHeight()*scale);
     }
 
     // this is DUMB!
-    public static boolean isInteger(String s) {
+    private boolean isInteger(String s) {
         try { 
             Integer.parseInt(s); 
         } catch(NumberFormatException e) { 
@@ -522,12 +562,13 @@ public class Stage extends JPanel {
 
     private void loadLadyCharacter(String charName){
         // first things first, get all the info
-        Map<String, Boolean> data = getAnimationData(charName);
-        boolean hasPoses = data.get("has-arrow-poses");
-        boolean hasAlts = data.get("has-alts");
-        boolean hasMisses = data.get("has-misses");
-        boolean hasAyy = data.get("has-ayy");
-        boolean leftRightIdle = data.get("left-right-idle");
+        Map<String, Object> data = getAnimationData(charName);
+        boolean hasPoses = (boolean) data.get("has-arrow-poses");
+        boolean hasAlts = (boolean) data.get("has-alts");
+        boolean hasMisses = (boolean) data.get("has-misses");
+        boolean hasAyy = (boolean) data.get("has-ayy");
+        boolean leftRightIdle = (boolean) data.get("left-right-idle");
+        double scale = (double) data.get("scale");
 
         Map<String, Object> config = getLadyConfig(charName);
         boolean drawSpeakers = (boolean) config.get("draw-speakers");
@@ -536,7 +577,7 @@ public class Stage extends JPanel {
         int ladyXOffset = (int) config.get("lady-x-offset");
         int ladyYOffset = (int) config.get("lady-y-offset");
 
-        lady = new AnimatedGameObject(400, 250, 1, cam);
+        lady = new AnimatedGameObject(400, 250, scale, cam);
         if(hasPoses){
             lady.addAnimationFromSpritesheet("left", getFrameData("left", charName), "./img/"+charName+"/left.png");
             lady.addAnimationFromSpritesheet("down", getFrameData("down", charName), "./img/"+charName+"/down.png");
@@ -581,7 +622,7 @@ public class Stage extends JPanel {
                 if(offsetScan != null) offsetScan.close();
             }
         }
-        lady.setPosition(lady.x, lady.y - lady.animations.get(leftRightIdle ? "idle-left" : "idle").get(0).getHeight());
+        lady.setPosition(lady.x, lady.y - lady.animations.get(leftRightIdle ? "idle-left" : "idle").get(0).getHeight()*scale);
         ArrayList<BufferedImage> speakerFrames = new ArrayList<>();
         File speakersFolder = new File("./img/"+charName+"/speakers");
         if(speakersFolder.exists()){
@@ -596,8 +637,8 @@ public class Stage extends JPanel {
                 }
             }
         }
-        BufferedImage dumbFrame = lady.animations.get("idle-left").get(0);
-        speakers = new MultiImageGameObject(lady.x+dumbFrame.getWidth()/2, lady.y+dumbFrame.getHeight(), 1, cam, speakerFrames, 0);
+        BufferedImage dumbFrame = lady.animations.get(leftRightIdle ? "idle-left" : "idle").get(0);
+        speakers = new MultiImageGameObject(lady.x+dumbFrame.getWidth()/2, lady.y+dumbFrame.getHeight()*scale, 1, cam, speakerFrames, 0);
         if(drawSpeakers) cam.addObjectToLayer("Speakers", speakers);
         speakers.setPosition(speakers.x-speakerFrames.get(0).getWidth()/2, speakers.y - (speakerFrames.get(0).getHeight()/3)*2);
         for(String key : lady.animations.keySet()){
@@ -607,13 +648,15 @@ public class Stage extends JPanel {
 
     private void loadBadGuyCharacter(String charName){
         // first things first, get all the info
-        Map<String, Boolean> data = getAnimationData(charName);
-        boolean hasPoses = data.get("has-arrow-poses");
-        boolean hasAlts = data.get("has-alts");
-        boolean hasMisses = data.get("has-misses");
-        boolean hasAyy = data.get("has-ayy");
-        boolean leftRightIdle = data.get("left-right-idle");
-        badguy = new AnimatedGameObject(260, 290, 1, cam);
+        Map<String, Object> data = getAnimationData(charName);
+        boolean hasPoses = (boolean) data.get("has-arrow-poses");
+        boolean hasAlts = (boolean) data.get("has-alts");
+        boolean hasMisses = (boolean) data.get("has-misses");
+        boolean hasAyy = (boolean) data.get("has-ayy");
+        boolean leftRightIdle = (boolean) data.get("left-right-idle");
+        double scale = (double) data.get("scale");
+
+        badguy = new AnimatedGameObject(260, 290, scale, cam);
         if(hasPoses){
             badguy.addAnimationFromSpritesheet("left", getFrameData("left", charName), "./img/"+charName+"/left.png");
             badguy.addAnimationFromSpritesheet("down", getFrameData("down", charName), "./img/"+charName+"/down.png");
@@ -662,7 +705,7 @@ public class Stage extends JPanel {
         // get dem feet on the ground!
         String idle = "idle";
         if(!badguy.animations.containsKey("idle")) idle = "idle-left";
-        dude.setPosition(badguy.x, badguy.y - badguy.animations.get(idle).get(0).getHeight());
+        dude.setPosition(badguy.x, badguy.y - (badguy.animations.get(idle).get(0).getHeight()*scale));
     }
 
     private void loadStageFile(String path){
@@ -693,7 +736,7 @@ public class Stage extends JPanel {
                  * set badguy x and y
                  * change background of camera (sky thing)
                  */
-                // TODO: this is probably a shitty way to do this, this uses substring SEVENTEEN FUCKING TIMES, find places to replace it with split() or something
+                // HACK: this is probably a shitty way to do this, this uses substring SEVENTEEN FUCKING TIMES, find places to replace it with split() or something
                 if(instruction.toLowerCase().startsWith("make sprite")){ // make sprite
                     // get the FUCKING parameters
                     Pattern p = Pattern.compile(findQuoteTextRegex); // find text in quotes, will be used for image and name
@@ -740,7 +783,6 @@ public class Stage extends JPanel {
                     stageObjects.get(name).scrollFactor = newFactor;
                 } else if(instruction.toLowerCase().startsWith("set camera background")){
                     // TODO: add other support
-                    System.out.println(instruction.substring(instruction.indexOf("TO ")+3, instruction.indexOf("\"")));
                     switch(instruction.substring(instruction.indexOf("TO ")+3, instruction.indexOf("\""))){
                         default: // hex
                             // only supported thing atm lul!
@@ -748,7 +790,6 @@ public class Stage extends JPanel {
                             Matcher m = p.matcher(instruction);
                             m.find();
                             String hex = m.group(1);
-                            System.out.println(hex);
                             cam.setBackground(Color.decode("#" + hex.toLowerCase()));
                             break;
                     }
@@ -758,10 +799,10 @@ public class Stage extends JPanel {
                 } else if(instruction.toLowerCase().startsWith("set badguy")){ // set a property of badguy
                     setPropertyOfAnimatedObject(instruction, badguy);
                 } else if(instruction.toLowerCase().startsWith("set lady")) {
-                    System.out.println("laddyyyyy");
                     setPropertyOfAnimatedObject(instruction, lady);
                 } else {
-                    System.out.println("wtf does " + instruction + " mean");
+                    if(instruction.startsWith("#")) System.out.println("thats probably a comment");
+                    else System.out.println("wtf does " + instruction + " mean");
                 }
             }
         }
@@ -777,7 +818,7 @@ public class Stage extends JPanel {
             String idle = "idle";
             // if it doesnt have the normal "idle" animation, assume it's in left-right style
             if(!obj.animations.containsKey("idle")) idle = "idle-left";
-            obj.setPosition(obj.x, y - obj.animations.get(idle).get(0).getHeight());
+            obj.setPosition(obj.x, y - obj.animations.get(idle).get(0).getHeight()* ((double)getAnimationData((obj.equals(badguy) ? badguyChar : dudeChar)).get("scale")));
         } else {
             System.out.println("???");
         }
@@ -971,7 +1012,12 @@ public class Stage extends JPanel {
         cam.setCameraPos(168, -128);
         setBinds();
 
-        String load = "mus_w1s1";
+        loading = true;
+        curLoadStep++;
+        loadingStep = "READING SONG FILE";
+        updateThread.start();
+        new Thread(()->{
+            String load = "mus_w1s1";
         try{
             load = Files.readString(Paths.get("./SONG_TO_LOAD_NAME.txt"));
         } catch(Exception e){
@@ -984,15 +1030,22 @@ public class Stage extends JPanel {
             e.printStackTrace();
         }
 
+        curLoadStep++;
+        loadingStep = "PARSING SONG DATA";
         Map<String, String> songData = parseSongData("./songs/"+load+"/data.txt");
 
+        curLoadStep++;
+        loadingStep = "LOADING CHARACTERS";
         dudeChar = songData.containsKey("dude-char") ? songData.get("dude-char") : "dude";
         loadDudeCharacter(dudeChar);
         badguyChar = songData.containsKey("badguy-char") ? songData.get("badguy-char") : "strad";
         loadBadGuyCharacter(badguyChar);
         cam.addRenderLayer("Speakers", cam.getLayerDepth("Background")+1);
-        loadLadyCharacter("lady");
+        ladyChar = songData.containsKey("lady-char") ? songData.get("lady-char") : "lady";
+        loadLadyCharacter(ladyChar);
 
+        curLoadStep++;
+        loadingStep = "LOADING STAGE";
         loadStageFile("./songs/" + load);
 
         // make it so hold notes render under normal notes
@@ -1000,8 +1053,12 @@ public class Stage extends JPanel {
         // make it so ui notes render under EVERY ui thing
         cam.addRenderLayer("UI note", cam.getLayerDepth("UI")-2);
 
+        curLoadStep++;
+        loadingStep = "LOADING CHART";
         curChart = loadChart(load);
-        updateThread.start();
+
+        loading = false;
+        }).start();
     }
     
     private ArrayList<ArrayList<GameNote>> loadChart(String songName){
@@ -1026,16 +1083,11 @@ public class Stage extends JPanel {
             System.out.println(scrollSpeed);
 
             // skip another useless line
-            scan.nextLine();
+            //scan.nextLine();
 
             File bleh = new File("./songs/" + songName + "/" + songName +".wav");
-            SoundManager.playSong(bleh.getAbsolutePath(), new Runnable() {
-                @Override
-                public void run() {
-                    SoundManager.songClip.close();
-                }
-            });
-            //testTimer.start();
+            // why tf did i make it a runnable?????
+            SoundManager.playSong(bleh.getAbsolutePath(),null);
             SoundManager.setVolume(1.7f);
 
             AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(bleh);
@@ -1048,16 +1100,18 @@ public class Stage extends JPanel {
 
             System.out.println(durationInSeconds + "\n" + songlong);
 
-            // i havent even written anything and i already feel the urge to cry. god help me
-            int b; // down.
-            int bb; // across.
+            // upscroll = 38
+            // downscroll = 480-38
+            // whered i get 480? idk
+            int starty = uiNotesYPos;
 
-            int starty = 38;
+            int dosc = (starty == 38) ? 1 : -1;
+            // BOOKMARK
 
             uiNotes.put("BadGuy", new HashMap<>());
             uiNotes.put("Player", new HashMap<>());
 
-            for(bb = 0; bb < 8; bb++){
+            for(int bb = 0; bb < 8; bb++){
                 ret.add(new ArrayList<>());
                 curChartTypes.add(new ArrayList<>());
                 int myx;
@@ -1072,38 +1126,32 @@ public class Stage extends JPanel {
                 uiNotes.get((bb < 4) ? "BadGuy" : "Player").put(bb%4, uin);
 
                 // FUCKING NOTES BABYYYYY 
-                for(b = 0; b < songlong; b++){
+                for(int b = 0; b < songlong; b++){
                     int line = scan.nextInt();
                     curChartTypes.get(bb).add(line);
                     //System.out.println(curChartTypes.get(bb).get(b));
                     if(line != 0){
-                        GameNote gn = new GameNote(myx,(48+(b*48*scrollSpeed)), bb%4, cam, (songName.equals("mus_frostbytep2") && bb < 4), bb >= 4, curChartTypes.get(bb).get(b));
+                        GameNote gn = new GameNote(myx,(48+(b*48*scrollSpeed*dosc)), bb%4, cam, (songName.equals("mus_frostbytep2") && bb < 4), bb >= 4, curChartTypes.get(bb).get(b));
                         if(gn.isHold()) cam.addObjectToLayer("UI hold", gn);
                         else cam.addObjectToLayer("UI", gn);
                         ret.get(bb).addLast(gn);
                     } else {
-                        continue;
-                        // TODO: THIS DOESNT WORK. WHY???
-                        /*try{
-                            if(ret.get(bb).get(b-1).type == GameNote.NoteType.HOLD || 
-                               ret.get(bb).get(b-1).type == GameNote.NoteType.ALT_HOLD) {
-                                System.out.println("Dat note needs cap!");
-                                ret.get(bb).get(b-1).drawCap = true;
-                            }
+                        // if this is the first note in the column, skip it
+                        if(ret.get(bb).size() < 1) continue;
+                        // if last note was a hold or alt hold, set it to draw the note cap
+                        GameNote.NoteType type = GameNote.NoteType.convertIntToNoteType(curChartTypes.get(bb).get(b-1));
+                        if(type == GameNote.NoteType.HOLD || 
+                           type == GameNote.NoteType.ALT_HOLD) {
+                            GameNote gn = ret.get(bb).get(ret.get(bb).size()-1);
+                            gn.enableCap();
                         }
-                        catch(IndexOutOfBoundsException ioobe){
-                            ioobe.printStackTrace();
-                            System.out.println("ITS THAT BUG AGAIN");
-                        }*/
                     }
                 }
             }
             // wip
-            /*
             GameNote gn = new GameNote(234+50+(60*3),(48+((songlong-1)*48*scrollSpeed)), 3, cam, false, true, GameNote.NoteType.END_SONG_TRIGGER);
             cam.addObjectToLayer("UI", gn);
             ret.get(7).add(gn);
-            */
 
             scan.close();
             return ret;
@@ -1119,13 +1167,36 @@ public class Stage extends JPanel {
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
 
-        //cam.moveCamera(-1, -1);
-        cam.drawViewport((Graphics2D) g);
-        //cam.changeCameraZoom(-0.005);
-        //cam.moveCamera(Math.cos(draws/5)*10, Math.sin(draws/5)*10);
+        if(!loading){
+            //cam.moveCamera(-1, -1);
+            cam.drawViewport((Graphics2D) g);
+            //cam.changeCameraZoom(-0.005);
+            //cam.moveCamera(Math.cos(draws/5)*10, Math.sin(draws/5)*10);
 
-        g.setFont(new Font("Comic Sans MS", Font.PLAIN, 16));
-        g.setColor(Color.white);
-        g.drawString("misses: " + misses, 50, 50);
+            g.setFont(new Font("Comic Sans MS", Font.PLAIN, 16));
+            g.setColor(Color.white);
+            g.drawString("misses: " + misses, 50, 50);
+        } else {
+            g.setColor(Color.BLACK);
+            g.fillRect(0, 0, getWidth(), getHeight());
+            g.setColor(Color.white);
+            String loadTitle = "LOADING!!";
+            g.setFont(new Font("Comic Sans MS", Font.BOLD, 48));
+            FontMetrics fm = g.getFontMetrics();
+            int p = fm.stringWidth(loadTitle)/2;
+            int h = fm.getHeight();
+            g.drawString(loadTitle, (Main.windowWidth/2)-p, (Main.windowHeight/2)-h);
+            
+            g.setFont(new Font("Comic Sans MS", Font.BOLD, 24));
+            fm = g.getFontMetrics();
+            p = fm.stringWidth(loadingStep)/2;
+            h = fm.getHeight();
+            g.drawString(loadingStep, (Main.windowWidth/2)-p, ((Main.windowHeight/2)+100)-h);
+            Graphics2D g2 = (Graphics2D) g;
+            g2.setStroke(new BasicStroke(3));
+            g2.drawRect(Main.windowWidth/2-250, Main.windowHeight/2+200, 250*2, 40);
+            g2.fillRect(Main.windowWidth/2-245, Main.windowHeight/2+205, (int)(((245*2)+1)*(curLoadStep*1.0/(maxLoadStep))), 31);
+            g2.dispose();
+        }
     }
 }

@@ -1,0 +1,6 @@
+has-arrow-poses:true
+has-alts:false
+has-misses:false
+has-ayy:true
+left-right-idle:true
+scale:4

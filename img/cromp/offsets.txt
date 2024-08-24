@@ -1,0 +1,7 @@
+left:-24,0
+down:-8,20
+up:8,-20
+right:4,0
+ayy:0,0
+idle-left:0,0
+idle-right:-8,0

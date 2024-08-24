@@ -37,8 +37,7 @@ public class Main extends JFrame {
         setResizable(false);
 
         if(!offset){
-            s = new Stage();
-            getContentPane().add(s, BorderLayout.CENTER);
+            getContentPane().add(new SplashPanel(), BorderLayout.CENTER);
         } else {
             getContentPane().add(new AnimationOffsetPanel(), BorderLayout.CENTER);
         }
@@ -50,6 +49,14 @@ public class Main extends JFrame {
     }
 
     // panel switching methods
+
+    public void goToStage(){
+        s = new Stage();
+        getContentPane().removeAll();
+        getContentPane().add(s, BorderLayout.CENTER);
+        revalidate();
+        s.requestFocusInWindow();
+    }
 
     /**
      * Creates the TitleScreen object and adds it to the frame. 

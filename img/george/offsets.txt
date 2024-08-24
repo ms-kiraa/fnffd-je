@@ -1,0 +1,9 @@
+left:1,0
+down:-3,7
+up:0,-6
+right:2,0
+left-alt:-20,0
+down-alt:17,0
+up-alt:6,0
+right-alt:0,0
+idle:0,0

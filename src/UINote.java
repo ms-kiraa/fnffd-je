@@ -1,9 +1,3 @@
-import java.awt.image.BufferedImage;
-import java.io.File;
-//import java.util.*;
-
-import javax.imageio.ImageIO;
-
 public class UINote extends Note {
     
     public static int presses = 0;
@@ -21,17 +15,9 @@ public class UINote extends Note {
     }
 
     private void setImage(){
-        try{
-            String path = (fumpNote) ? ("fump/spr_uinotefump_") : ("spr_uinotes_");
-            path += this.dir.getDirectionAsInt();
-            BufferedImage bi;
-            if(cache.containsKey(path)) bi = cache.get(path);
-            else {
-                bi = ImageIO.read(new File("./img/ui/notes/ui/" + path + ".png"));
-                cache.put(path, bi);
-            }
-            setImage(bi);
-        } catch(Exception e){e.printStackTrace(); System.exit(1);}
+        String path = "./img/ui/notes/ui/" + ((fumpNote) ? ("fump/spr_uinotefump_") : ("spr_uinotes_"));
+        path += this.dir.getDirectionAsInt() + ".png";
+        setImage(getImageFromCache(path));
     }
 
     public void visPress(){

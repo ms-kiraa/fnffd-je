@@ -86,7 +86,6 @@ public class GameNote extends Note {
             case HOLD:
             case ALT_HOLD:
                 basePath += "spr_noteshold_";
-                drawCap = true; // TODO: make it only draw the cap if its the last in line please pretty please remember to do it this time dont be like last time
                 break;
             case EVENT:
                 basePath += "event/spr_eventnote";
@@ -95,7 +94,7 @@ public class GameNote extends Note {
             case END_SONG_TRIGGER:
                 basePath += "spr_noteshold_";
                 autohit = true;
-                //shouldDraw = false;
+                shouldDraw = false;
                 break;
             default:
                 if(!fumpNote){
@@ -106,15 +105,34 @@ public class GameNote extends Note {
                 break;
         }
         if(shouldDraw){
-            try{
-                //System.out.println(basePath);
-                this.image = ImageIO.read(new File(basePath + dir.getDirectionAsInt() + ".png"));
-            } catch(Exception e){
-                e.printStackTrace();
-                //System.exit(0);
-                shouldDraw = false;
-            }
+            String path = basePath + dir.getDirectionAsInt() + ".png";
+            BufferedImage img = getImageFromCache(path);
+            setImage(img);
         }
+    }
+
+    public void enableCap(){
+        drawCap = true;
+        if(!cache.containsKey(dir.getDirectionAsInt()+"cap")){
+            // edit the image ot have the cap under it. im lazy
+            BufferedImage hold = this.image;
+            String path = "./img/ui/notes/spr_notecap_"+dir.getDirectionAsInt()+".png";
+            BufferedImage cap = getImageFromCache(path);
+            BufferedImage merged = new BufferedImage(hold.getWidth(), hold.getHeight()+cap.getHeight(), BufferedImage.TYPE_INT_ARGB);
+            Graphics2D g2 = merged.createGraphics();
+            if(!Stage.instance.downscroll){
+                g2.drawImage(cap, 0,merged.getHeight()-cap.getHeight(), null);
+                g2.drawImage(hold, 0, 0, null);
+            } else {
+                // FIXME: this actually just straight up does not work as intended for some reason
+                // 
+                g2.drawImage(hold, 0, cap.getHeight()*2, null);
+                g2.drawImage(cap, 0, cap.getHeight(), cap.getWidth(), -cap.getHeight(), null);
+            }
+            g2.dispose();
+            cache.put(dir.getDirectionAsInt()+"cap", merged);
+        }
+        setImage(cache.get(dir.getDirectionAsInt()+"cap"));
     }
 
     @Override
@@ -122,10 +140,6 @@ public class GameNote extends Note {
         if(shouldDraw){
             super.render(g, cam);
         }
-        if(drawCap){
-            // todo
-        }
-        update();
     }
 
     public boolean isHold(){

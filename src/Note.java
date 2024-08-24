@@ -1,6 +1,9 @@
 import java.awt.image.BufferedImage;
+import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
+
+import javax.imageio.ImageIO;
 
 /**
  * The base note class. Comes with variables for controlling notes
@@ -39,6 +42,21 @@ public class Note extends GameObject {
         this.playerNote = playerNote;
         this.fumpNote = false;
         this.scrollFactor = 0;
+    }
+
+    protected BufferedImage getImageFromCache(String path){
+        try{
+            if(!cache.containsKey(path)){
+                BufferedImage load = ImageIO.read(new File(path));
+                cache.put(path, load);
+            }
+            return cache.get(path);
+        } catch(Exception e){
+            System.out.println(path);
+            e.printStackTrace();
+            //System.exit(0);
+        }
+        return null;
     }
 
     /**

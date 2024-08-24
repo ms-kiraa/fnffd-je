@@ -65,7 +65,7 @@ public class SoundManager {
             songClip.addLineListener(new LineListener() {
                 public void update(LineEvent myLineEvent) {
                     if (myLineEvent.getType() == LineEvent.Type.STOP){
-                        run.run();
+                        if(run != null) run.run();
                     }   
                 }
             });

@@ -1,3 +1,5 @@
+has-arrow-poses:true
 has-alts:true
 has-misses:true
 has-ayy:true
+left-right-idle:false

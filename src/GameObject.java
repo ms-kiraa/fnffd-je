@@ -91,8 +91,8 @@ public class GameObject {
 
     protected void render(Graphics2D g, Camera cam, BufferedImage img) {
         // Calculate the center of the camera
-        double camCenterX = cam.x + cam.getBounds().width / 2.0;
-        double camCenterY = cam.y + cam.getBounds().height / 2.0;
+        //double camCenterX = cam.x + cam.getBounds().width / 2.0;
+        //double camCenterY = cam.y + cam.getBounds().height / 2.0;
     
         // Calculate the position of the image relative to the center of the camera
         double imgPosX = ((x - (cam.x*scrollFactor)) * cam.scaleFactor/* + cam.getBounds().width / 2.0*/);

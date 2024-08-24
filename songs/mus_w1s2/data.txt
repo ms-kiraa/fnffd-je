@@ -1,0 +1,5 @@
+name:stars
+dude-char:dude
+badguy-char:strad
+lady-char:lady
+noteskin:default
