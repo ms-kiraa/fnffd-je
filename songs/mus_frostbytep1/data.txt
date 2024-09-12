@@ -2,5 +2,6 @@ name:infographic
 dude-char:dude
 badguy-char:george
 lady-char:lady
+stage:backyard
 noteskin:default
 show-in-song-select:true

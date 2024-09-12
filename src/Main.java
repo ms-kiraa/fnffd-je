@@ -1,24 +1,25 @@
 import javax.swing.*;
 
 import java.awt.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
 public class Main extends JFrame {
 
-    public static int windowWidth = 815;
-    public static int windowHeight = 833;
+    public final static int windowWidth = 815;
+    public final static int windowHeight = 833;
 
     public static Main main;
 
     // this is probably a bad idea but meh
     public static RecordScratchScreen rss;
-    public static TitleScreen ts;
     public static MainMenu mm;
     public static Stage s;
 
-    public static final int targetFPS = 60;
-    public static final int TICK_TIME = 1000/targetFPS;
+    public static final int targetFPS = 9999;
+    public static final int TICK_TIME = 17;
 
     private Main(String title){
         super(title);
@@ -30,7 +31,16 @@ public class Main extends JFrame {
         }
         boolean offset = Boolean.parseBoolean(load);
 
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                //ClientPrefs.saveAllData();
+                setVisible(false);
+                dispose();
+                System.exit(0);
+            }
+        });
 
         setPreferredSize(new Dimension(windowWidth, windowHeight));
         setLayout(new BorderLayout());
@@ -58,6 +68,22 @@ public class Main extends JFrame {
         s.requestFocusInWindow();
     }
 
+    public void goToRecordScratch(){
+        rss = new RecordScratchScreen();
+        getContentPane().removeAll();
+        getContentPane().add(rss, BorderLayout.CENTER);
+        revalidate();
+        rss.requestFocusInWindow();
+    }
+
+    public void goToTitlePanel(){
+        TitlePanel tp = new TitlePanel();
+        getContentPane().removeAll();
+        getContentPane().add(tp, BorderLayout.CENTER);
+        revalidate();
+        tp.requestFocusInWindow();
+    }
+
     /**
      * Creates the TitleScreen object and adds it to the frame. 
      * <p>
@@ -65,9 +91,11 @@ public class Main extends JFrame {
      * 
      * @see TitleScreen
      * @see RecordScratchScreen
+     * @deprecated succeeded by TitlePanel
+     * @see TitlePanel
      */
     public void goToTitleScreen(){
-        ts = new TitleScreen();
+        TitleScreen ts = new TitleScreen();
         getContentPane().remove(rss);
         rss = null;
         getContentPane().add(ts, BorderLayout.CENTER);
@@ -94,6 +122,7 @@ public class Main extends JFrame {
     }
 
     public static void main(String[] args) throws Exception {
-        SwingUtilities.invokeLater(() -> {main = new Main("fnf free download: java edition");});
+        SwingUtilities.invokeLater(() -> {main = new Main("fnf free download: java edition"); System.out.println(main.getWidth());});
+        
     }
 }

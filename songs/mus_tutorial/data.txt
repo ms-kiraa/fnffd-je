@@ -1,4 +1,6 @@
 name:I, Robot
 dude-char:dude-gaw
 badguy-char:teachvee
+lady-char:lady
+stage:backyard
 noteskin:gaw

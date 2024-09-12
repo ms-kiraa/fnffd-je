@@ -74,6 +74,16 @@ public class SoundManager {
         }
     }
 
+    public static void setSongPosition(long ms){
+        songClip.stop();
+        songClip.setMicrosecondPosition(ms);
+        songClip.start();
+    }
+
+    public static void setSongLoop(boolean loop){
+        songClip.loop(loop ? Clip.LOOP_CONTINUOUSLY : 0);
+    }
+
     public static void loopExtraSound(String soundFile) {
         try {
             AudioInputStream audioIn = AudioSystem.getAudioInputStream(new File(soundFile));

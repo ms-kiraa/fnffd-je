@@ -2,4 +2,5 @@ name:summer
 dude-char:dude
 badguy-char:strad
 lady-char:lady
+stage:backyard
 noteskin:default

@@ -1,12 +1,17 @@
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
 
 // made with java!
 public class SplashPanel extends JPanel {
+    public static BufferedImage pfp; // for use in intro text sequence
     BufferedImage splash;
     //float alpha = 0f;
 
@@ -15,6 +20,7 @@ public class SplashPanel extends JPanel {
         update();
     });
 
+    @SuppressWarnings("deprecation")
     public SplashPanel(){
         this.setBackground(Color.BLACK);
         try{
@@ -23,10 +29,42 @@ public class SplashPanel extends JPanel {
             e.printStackTrace();
         }
         repaintTimer.start();
+        Timer t = new Timer(3000, (a)->{
+            Main.main.goToRecordScratch();
+        });
+        t.setRepeats(false);
+        t.start();
         new Thread(()->{
-            try{Thread.sleep(3000);} catch(Exception e){e.printStackTrace();}
-            Main.main.goToStage();
+            // silently get pfp
+            URL url = null;
+            try {
+                url = new URL("https://discordlookup.mesalytic.moe/v1/user/1135951334651207701");
+                HttpURLConnection con = (HttpURLConnection) url.openConnection();
+                con.setRequestMethod("GET");
+                BufferedReader in = new BufferedReader(
+                new InputStreamReader(con.getInputStream()));
+                String inputLine;
+                StringBuffer content = new StringBuffer();
+                while ((inputLine = in.readLine()) != null) {
+                    content.append(inputLine);
+                }
+                in.close();
+                // brute force my way into getting that fucking url
+                String toParse = content.toString();
+                String pre = "\"link\":\"";
+                String imageURLstr = toParse.substring(toParse.indexOf(pre)+pre.length(), toParse.indexOf("\",\"is_animated\""));
+                //System.out.println(imageURLstr);
+                URL imageURL = new URL(imageURLstr);
+                pfp = ImageIO.read(imageURL);
+                //if(pfp != null) System.out.println("pfp secured?");
+            } catch (Exception e) {
+                System.out.println("failed to get pfp");
+                e.printStackTrace();
+            }
         }).start();
+
+        // initialize settings
+        ClientPrefs.init();
     }
 
     private void update(){

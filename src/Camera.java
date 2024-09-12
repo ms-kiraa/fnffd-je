@@ -55,7 +55,7 @@ public class Camera {
      * @param y starting Y position of the camera.
      */
     public Camera(double x, double y){
-        this(x, y, 1.5);
+        this(x, y, 1);
     }
 
     /**

@@ -39,7 +39,7 @@ public class RecordScratchScreen extends JPanel {
                 show = false;
                 Thread.sleep(500);
                 FadeManager.fadeIn(Color.WHITE, 1, 1);
-                Main.main.goToTitleScreen();
+                Main.main.goToTitlePanel();
             } catch(Exception e){
                 e.printStackTrace();
             }

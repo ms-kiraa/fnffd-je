@@ -1,8 +1,5 @@
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
-import java.io.File;
-
-import javax.imageio.ImageIO;
 
 public class GameNote extends Note {
     public NoteType type;
@@ -113,10 +110,12 @@ public class GameNote extends Note {
 
     public void enableCap(){
         drawCap = true;
+        String path = "./img/ui/notes/spr_notecap_"+dir.getDirectionAsInt()+".png";
+        if(Stage.instance.downscroll) yy -= this.image.getHeight(); // move it up so that it appears in the right place
+        //if(Stage.instance.downscroll) yy -= (getImageFromCache(path).getHeight()/3-5);
         if(!cache.containsKey(dir.getDirectionAsInt()+"cap")){
             // edit the image ot have the cap under it. im lazy
             BufferedImage hold = this.image;
-            String path = "./img/ui/notes/spr_notecap_"+dir.getDirectionAsInt()+".png";
             BufferedImage cap = getImageFromCache(path);
             BufferedImage merged = new BufferedImage(hold.getWidth(), hold.getHeight()+cap.getHeight(), BufferedImage.TYPE_INT_ARGB);
             Graphics2D g2 = merged.createGraphics();
@@ -124,10 +123,15 @@ public class GameNote extends Note {
                 g2.drawImage(cap, 0,merged.getHeight()-cap.getHeight(), null);
                 g2.drawImage(hold, 0, 0, null);
             } else {
-                // FIXME: this actually just straight up does not work as intended for some reason
-                // 
-                g2.drawImage(hold, 0, cap.getHeight()*2, null);
+                // XXX: this makes it so you have to hold the note for longer, really stupid dumb "solution" coming up
+                g2.drawImage(hold, 0, merged.getHeight()-hold.getHeight(), null);
                 g2.drawImage(cap, 0, cap.getHeight(), cap.getWidth(), -cap.getHeight(), null);
+                /*// HACK: this is a short-term solution for a problem that really should be fixed in the long run
+                g2.dispose();
+                merged = new BufferedImage(cap.getWidth(), cap.getHeight(), BufferedImage.TYPE_INT_ARGB);
+                g2 = merged.createGraphics();
+                g2.drawImage(cap, 0, merged.getHeight(), cap.getWidth(), -cap.getHeight(), null);
+                yy -= (merged.getHeight()/3-5);*/
             }
             g2.dispose();
             cache.put(dir.getDirectionAsInt()+"cap", merged);

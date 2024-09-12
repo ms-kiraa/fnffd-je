@@ -9,8 +9,6 @@ import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.ListIterator;
@@ -25,6 +23,7 @@ import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.Clip;
 import javax.swing.AbstractAction;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.KeyStroke;
 import javax.swing.Timer;
@@ -36,6 +35,11 @@ public class Stage extends JPanel {
     int curLoadStep = 0;
     int maxLoadStep = 5;
     Camera cam;
+    int[] dudeCamMove = {230, -128};
+    int[] badguyCamMove = {115, -128};
+    int[] middleCamMove = {168, -128};
+    double camXTarget = 168;
+    double camYTarget = -128;
 
     int draws = 0;
 
@@ -50,6 +54,8 @@ public class Stage extends JPanel {
     double songpos;
 
     long lastTickMillis = System.currentTimeMillis();
+
+    public static ArrayList<String> songPlaylist = new ArrayList<>();
 
     ArrayList<ArrayList<GameNote>> curChart;
     ArrayList<ArrayList<Integer>> curChartTypes;
@@ -84,9 +90,13 @@ public class Stage extends JPanel {
     int badguyLastIdleBeat = -10;
     int badguylastIdleDir = 0;
 
-    boolean downscroll = true;
+    boolean downscroll = false;
     int downscrollYMod = downscroll ? -1 : 1;
     int uiNotesYPos = downscroll ? 480-38 : 38;
+
+    int currentFPS;
+    ArrayList<Integer> recentFPS = new ArrayList<>();
+    int roundedFPS;
 
     Map<String, GameObject> stageObjects = new HashMap<>();
 
@@ -99,9 +109,17 @@ public class Stage extends JPanel {
                 if(!loading) update();
                 repaint();
                 draws++;
-                //long elapsed = System.currentTimeMillis() - lastTickMillis; // probably will be used eventually
-                //int currentFPS = 1000 / (int)elapsed;
-                //System.out.println("TIME SINCE LAST TICK: " + elapsed + " ms\nDIFFERENCE FROM TARGET: " + (elapsed - TICK_TIME) + " ms\nCURRENT FPS: " + currentFPS);
+                long elapsed = System.currentTimeMillis() - lastTickMillis; // probably will be used eventually
+                currentFPS = 1000 / (int)elapsed;
+                recentFPS.add(currentFPS);
+                if(recentFPS.size() > 10) {
+                    recentFPS.remove(0);
+                }
+                roundedFPS = 0;
+                for(int i : recentFPS) {
+                    roundedFPS += i;
+                }
+                roundedFPS /= recentFPS.size();
                 lastTickMillis = System.currentTimeMillis();
             }
 
@@ -110,6 +128,7 @@ public class Stage extends JPanel {
     });
 
     private GameNote findHittableNoteInLane(boolean playerLane, int lane){
+        // TODO: fucking better input man this shit sucks ass, do ms based or SOMETHING just dont do y pos based please
         //System.out.println(lane + (playerLane ? 4 : 0));
         ArrayList<GameNote> laneList = curChart.get(lane + (playerLane ? 4 : 0));
         UINote ui = uiNotes.get(playerLane ? "Player" : "BadGuy").get(lane%4);
@@ -142,7 +161,7 @@ public class Stage extends JPanel {
             case "w4s2":
                 switch(event){
                     case 0:
-                        System.out.println("PLAYING SFX\\");
+                        System.out.println("PLAYING SFX");
                         SoundManager.playSFX("./snd/snd_firework.wav");
                         break;
                 }
@@ -157,15 +176,23 @@ public class Stage extends JPanel {
         gn = null;
     }
 
+    double lerp(double a, double b, double f)
+    {
+        return a * (1.0 - f) + (b * f);
+    }
+
     private void update(){
         //System.out.println("Oughh");
-        /*
-        if(keysPressed[0]) badguy.x -= 1; 
-        if(keysPressed[1]) badguy.y += 1;
-        if(keysPressed[2]) badguy.y -= 1;
-        if(keysPressed[3]) badguy.x += 1;
-        System.out.println(badguy.x + " " + badguy.y);
+        /*if(keysPressed[0]) cam.moveCameraX(-1); 
+        if(keysPressed[1]) cam.moveCameraY(1);
+        if(keysPressed[2]) cam.moveCameraY(-1);
+        if(keysPressed[3]) cam.moveCameraX(1);
+        System.out.println(cam.x + " " + cam.y);
         //*/
+
+        // move camera
+        double camMoveSpd = 0.03;
+        if(Math.abs(cam.x - camXTarget) > 5 || Math.abs(cam.y - camYTarget) > 5) cam.setCameraPos(lerp(cam.x, camXTarget, camMoveSpd), lerp(cam.y, camYTarget, camMoveSpd)); 
         songpos = (SoundManager.songClip.getMicrosecondPosition() / 1000000.0);
         double songProgress = songpos / songlong;
         Conductor.setTime(songpos);
@@ -241,35 +268,63 @@ public class Stage extends JPanel {
                     boolean autohitCondition = (downscroll) ? (gn.y >= uiNotesYPos) : (gn.y <= uiNotesYPos);
                     if(autohitCondition && !gn.hit) {
                         gn.hit = true;
-                        if(gn.type == GameNote.NoteType.EVENT) {
-                            System.out.println("dats an event note right htere. " + event);
-                            doEvent();
-                        } else if(gn.type == GameNote.NoteType.AYY){
-                            if(gn.playerNote){
-                                if(dude.hasAnimation("ayy")) {
-                                    dude.playAnimation("ayy");
-                                    dudeLastIdleBeat = beat;
+                        switch(gn.type){
+                            case AYY:
+                                if(gn.playerNote){
+                                    if(dude.hasAnimation("ayy")) {
+                                        dude.playAnimation("ayy");
+                                        dudeLastIdleBeat = beat;
+                                    }
+                                    File ayy = new File("./img/"+dudeChar+"/ayy.wav");
+                                    if(ayy.exists()){
+                                        SoundManager.playSFX(ayy.getAbsolutePath());
+                                    }
+                                } else {
+                                    if(badguy.hasAnimation("ayy")) {
+                                        badguy.playAnimation("ayy");
+                                        badguyLastIdleBeat = beat;
+                                    }
+                                    File ayy = new File("./img/"+badguyChar+"/ayy.wav");
+                                    if(ayy.exists()){
+                                        SoundManager.playSFX(ayy.getAbsolutePath());
+                                    }
                                 }
-                                File ayy = new File("./img/"+dudeChar+"/ayy.wav");
-                                if(ayy.exists()){
-                                    SoundManager.playSFX(ayy.getAbsolutePath());
-                                }
-                            } else {
-                                if(badguy.hasAnimation("ayy")) {
-                                    badguy.playAnimation("ayy");
-                                    badguyLastIdleBeat = beat;
-                                }
-                                File ayy = new File("./img/"+badguyChar+"/ayy.wav");
-                                if(ayy.exists()){
-                                    SoundManager.playSFX(ayy.getAbsolutePath());
-                                }
-                            }
-                        } else if(gn.type == GameNote.NoteType.END_SONG_TRIGGER){
-                            System.out.println("EJNDING SONG!!");
-                            SoundManager.songClip.close();
-                            updateTimer.stop();
-                            updateThread.interrupt();
-                            Main.main.goToStage();
+                                break;
+                            case END_SONG_TRIGGER:
+                                System.out.println("EJNDING SONG!!");
+                                // show loading screen
+                                loading = true;
+                                loadingStep = "FINISHING UP";
+                                curLoadStep = 0;
+                                new Thread(()->{
+                                    SoundManager.songClip.close();
+                                    updateTimer.stop();
+                                    updateThread.interrupt();
+
+                                    // advance story playlist
+                                    songPlaylist.remove(0);
+
+                                    Main.main.goToStage();
+                                }).start();
+                                break;
+                            case EVENT:
+                                System.out.println("dats an event note right htere. " + event);
+                                doEvent();
+                                break;
+                            case DUDE_CAM:
+                                camXTarget = dudeCamMove[0];
+                                camYTarget = dudeCamMove[1];
+                                break;
+                            case ENEMY_CAM:
+                                camXTarget = badguyCamMove[0];
+                                camYTarget = badguyCamMove[1];
+                                break;
+                            case MIDDLE_CAM:
+                                camXTarget = middleCamMove[0];
+                                camYTarget = middleCamMove[1];
+                                break;
+                            default:
+                                break;
                         }
                         removeNote(gn);
                         iter2.remove();
@@ -279,7 +334,9 @@ public class Stage extends JPanel {
 
                 if(gn.playerNote){
                     // handle player note stuff
-                    boolean holdHitCondition = (downscroll) ? (gn.y >= uiNotes.get("Player").get(gn.dir.getDirectionAsInt()).y) : (gn.y <= uiNotes.get("Player").get(gn.dir.getDirectionAsInt()).y);
+                    // this line is so big it might as well have its own variable
+                    boolean downscrollHoldHitCondition = ((gn.y+gn.image.getHeight()) >= (uiNotes.get("Player").get(gn.dir.getDirectionAsInt()).y+uiNotes.get("Player").get(gn.dir.getDirectionAsInt()).image.getHeight()));
+                    boolean holdHitCondition = (downscroll) ? downscrollHoldHitCondition : (gn.y <= uiNotes.get("Player").get(gn.dir.getDirectionAsInt()).y);
                     if( 
                         (gn.isHold()) && 
                         keysPressed[gn.dir.getDirectionAsInt()] && 
@@ -296,7 +353,8 @@ public class Stage extends JPanel {
 
                     }
                 } else {
-                    boolean badguyHitCondition = (downscroll) ? (gn.y >= uiNotes.get("BadGuy").get(gn.dir.getDirectionAsInt()).y) : (gn.y <= uiNotes.get("BadGuy").get(gn.dir.getDirectionAsInt()).y);
+                    boolean badguyDownscrollHoldHitCondition = ((gn.y+gn.image.getHeight()) >= (uiNotes.get("BadGuy").get(gn.dir.getDirectionAsInt()).y+uiNotes.get("BadGuy").get(gn.dir.getDirectionAsInt()).image.getHeight()));
+                    boolean badguyHitCondition = (downscroll) ? badguyDownscrollHoldHitCondition : (gn.y <= uiNotes.get("BadGuy").get(gn.dir.getDirectionAsInt()).y);
                     if(badguyHitCondition) {
                         if(gn.type == GameNote.NoteType.NORMAL || gn.type == GameNote.NoteType.ALT)
                             uiNotes.get("BadGuy").get(gn.dir.getDirectionAsInt()).visPress();
@@ -709,7 +767,7 @@ public class Stage extends JPanel {
     }
 
     private void loadStageFile(String path){
-        String stagePath = path + "/stage/";
+        String stagePath = path + "/";
         File stage = new File(stagePath + "stage.txt");
         System.out.println(stage.getAbsolutePath());
         if(stage.exists()){
@@ -727,7 +785,14 @@ public class Stage extends JPanel {
                 if(stageScanner != null) stageScanner.close();
             }
             String findQuoteTextRegex = "\"(.*?)\""; // allow for either 'this quote' or "this quote"
+            Pattern quotePattern = Pattern.compile(findQuoteTextRegex); // find text in quotes, will be used for image and name
+            Pattern twoNumbersCommaSeparatedPattern = Pattern.compile("(-?[0-9]+),\\s*(-?[0-9]+)"); // hee hee pp
+            Pattern decimalPattern = Pattern.compile("([0-9]+\\.?[0-9]*)"); // looks for decimal nums
+            Pattern threeNumbersCommaSeparatedPattern = Pattern.compile("([0-9]),\\s*([0-9]),\\s*([0-9])");
+            
+            int i = 0;
             for(String instruction : instructions) {
+                i++;
                 /*
                  * current command list
                  * make sprite
@@ -739,8 +804,7 @@ public class Stage extends JPanel {
                 // HACK: this is probably a shitty way to do this, this uses substring SEVENTEEN FUCKING TIMES, find places to replace it with split() or something
                 if(instruction.toLowerCase().startsWith("make sprite")){ // make sprite
                     // get the FUCKING parameters
-                    Pattern p = Pattern.compile(findQuoteTextRegex); // find text in quotes, will be used for image and name
-                    Matcher m = p.matcher(instruction);
+                    Matcher m = quotePattern.matcher(instruction);
                     m.find();
                     String img = m.group(1);
                     //System.out.println(img);
@@ -754,8 +818,7 @@ public class Stage extends JPanel {
                     }
                     // get x and y
                     int x, y = 0;
-                    Pattern pp = Pattern.compile("(-?[0-9]+),\\s*(-?[0-9]+)"); // hee hee pp
-                    Matcher mm = pp.matcher(instruction);
+                    Matcher mm = twoNumbersCommaSeparatedPattern.matcher(instruction);
                     mm.find();
                     x = Integer.parseInt(mm.group(1));
                     y = Integer.parseInt(mm.group(2));
@@ -770,28 +833,39 @@ public class Stage extends JPanel {
                     stageObjects.put(name, made);
                 } else if(instruction.toLowerCase().startsWith("set scroll factor")){ // set scroll factor
                     //System.out.println("gotta set dat scroll!");
-                    Pattern p = Pattern.compile(findQuoteTextRegex);
-                    Matcher m = p.matcher(instruction);
+                    Matcher m = quotePattern.matcher(instruction);
                     m.find();
                     String name = m.group(1);
 
-                    Pattern pp = Pattern.compile("([0-9]+\\.?[0-9]*)"); // looks for decimal nums
-                    Matcher mm = pp.matcher(instruction);
+                    Matcher mm = decimalPattern.matcher(instruction);
                     mm.find(instruction.lastIndexOf("\""));
                     double newFactor = Double.parseDouble(mm.group(1));
                     System.out.println(newFactor);
                     stageObjects.get(name).scrollFactor = newFactor;
                 } else if(instruction.toLowerCase().startsWith("set camera background")){
                     // TODO: add other support
-                    switch(instruction.substring(instruction.indexOf("TO ")+3, instruction.indexOf("\""))){
-                        default: // hex
+                    String type = instruction.toLowerCase().substring(instruction.indexOf("TO ")+3, instruction.indexOf("\"")-1);
+                    switch(type){
+                        case "hex": // hex
                             // only supported thing atm lul!
-                            Pattern p = Pattern.compile(findQuoteTextRegex);
-                            Matcher m = p.matcher(instruction);
+                            Matcher m = quotePattern.matcher(instruction);
                             m.find();
                             String hex = m.group(1);
                             cam.setBackground(Color.decode("#" + hex.toLowerCase()));
                             break;
+                        case "rgb":
+                            Matcher mm = quotePattern.matcher(instruction);
+                            mm.find();
+                            String rgb = mm.group(1);
+                            // now grab the little thingies
+                            Matcher mmm = threeNumbersCommaSeparatedPattern.matcher(rgb);
+                            mmm.find();
+                            String r = mmm.group(1);
+                            String g = mmm.group(2);
+                            String b = mmm.group(3);
+                            cam.setBackground(new Color(Integer.parseInt(r), Integer.parseInt(g), Integer.parseInt(b)));
+                        default:
+                            JOptionPane.showMessageDialog(null, "Unknown color type: "+type);
                     }
                 } else if(instruction.toLowerCase().startsWith("set dude")){ // set a property of dude
                     System.out.println(Character.toString(instruction.charAt(9)));
@@ -802,7 +876,10 @@ public class Stage extends JPanel {
                     setPropertyOfAnimatedObject(instruction, lady);
                 } else {
                     if(instruction.startsWith("#")) System.out.println("thats probably a comment");
-                    else System.out.println("wtf does " + instruction + " mean");
+                    else if(instruction.trim().length() == 0) System.out.println("just a blanlk line");
+                    else {
+                        JOptionPane.showMessageDialog(null, "Unknown command on line "+i+": "+instruction);
+                    }
                 }
             }
         }
@@ -1008,9 +1085,14 @@ public class Stage extends JPanel {
 
     public Stage(){
         instance = this;
-        cam = new Camera(); // testing
+        cam = new Camera(0, 0, 1.5);
         cam.setCameraPos(168, -128);
         setBinds();
+
+        downscroll = ClientPrefs.getDownscroll();
+        downscrollYMod = downscroll ? -1 : 1;
+        uiNotesYPos = downscroll ? 480-38 : 38;
+
 
         loading = true;
         curLoadStep++;
@@ -1018,10 +1100,25 @@ public class Stage extends JPanel {
         updateThread.start();
         new Thread(()->{
             String load = "mus_w1s1";
+        Scanner songScanner = null;
         try{
-            load = Files.readString(Paths.get("./SONG_TO_LOAD_NAME.txt"));
+            if(songPlaylist.size() == 0) {
+                songScanner = new Scanner(new File("./SONG_TO_LOAD_NAME.txt"));
+
+                while (songScanner.hasNextLine()){
+                    String song = songScanner.nextLine();
+                    if(song.length() > 0) {
+                        songPlaylist.add(song);
+                        System.out.println(song);
+                    }
+                }
+
+                songScanner.close();
+            }
+            load = songPlaylist.get(0);
         } catch(Exception e){
             e.printStackTrace();
+            if(songScanner != null) songScanner.close();
         }
 
         try{
@@ -1046,7 +1143,8 @@ public class Stage extends JPanel {
 
         curLoadStep++;
         loadingStep = "LOADING STAGE";
-        loadStageFile("./songs/" + load);
+        String stage = songData.containsKey("stage") ? songData.get("stage") : "backyard";
+        loadStageFile("./stages/"+stage);
 
         // make it so hold notes render under normal notes
         cam.addRenderLayer("UI hold", cam.getLayerDepth("UI")-1);
@@ -1161,7 +1259,7 @@ public class Stage extends JPanel {
             if(scan != null) scan.close();
         }
         return null;
-    }
+    }   
 
     @Override
     public void paintComponent(Graphics g) {
@@ -1176,6 +1274,7 @@ public class Stage extends JPanel {
             g.setFont(new Font("Comic Sans MS", Font.PLAIN, 16));
             g.setColor(Color.white);
             g.drawString("misses: " + misses, 50, 50);
+            g.drawString("fps: "+currentFPS, 150, 50);
         } else {
             g.setColor(Color.BLACK);
             g.fillRect(0, 0, getWidth(), getHeight());

@@ -37,6 +37,10 @@ public class TitleScreen extends JPanel {
 
     float draws = 0;
 
+    /**
+     * @deprecated succeeded by TitlePanel
+     * @see TitlePanel
+     */
     public TitleScreen(){
         SoundManager.loopExtraSound("snd/mus_game.wav"); // start song
         try{

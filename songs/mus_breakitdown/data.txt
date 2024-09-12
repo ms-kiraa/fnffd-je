@@ -2,4 +2,5 @@ name:break it down triangle man
 dude-char:dude
 badguy-char:cromp
 lady-char:lady
+stage:backyard
 noteskin:default
