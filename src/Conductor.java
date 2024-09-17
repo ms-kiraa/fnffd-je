@@ -1,6 +1,3 @@
-import java.util.HashMap;
-import java.util.Map;
-
 public class Conductor {
     public static double lastTime = 0;
 
@@ -18,9 +15,6 @@ public class Conductor {
     public static int step;
 
     public static Conductor instance;
-
-    public static Map<String, Runnable> everyBeat = new HashMap<>();
-    public static Map<String, Runnable> everyStep = new HashMap<>();
 
     public Conductor(){
         instance = this;

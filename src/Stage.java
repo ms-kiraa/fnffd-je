@@ -6,7 +6,6 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.util.ArrayList;
@@ -34,6 +33,8 @@ public class Stage extends JPanel {
     String loadingStep = "null";
     int curLoadStep = 0;
     int maxLoadStep = 5;
+    boolean drawLoadingBar = true;
+
     Camera cam;
     int[] dudeCamMove = {230, -128};
     int[] badguyCamMove = {115, -128};
@@ -64,8 +65,10 @@ public class Stage extends JPanel {
     public static Stage instance;
 
     boolean[] keysPressed = {false, false, false, false};
+    int[] binds = ClientPrefs.getBinds();
 
     Clip song;
+    FreeDownloadLua luaInstance;
 
     AnimatedGameObject dude;
     String dudeChar = "dude";
@@ -145,28 +148,8 @@ public class Stage extends JPanel {
     // find what event to execute and do it
     private void doEvent(){
         //System.out.println("executing event " + event);
-        switch(songName.substring(4)){
-            case "breakitdown":
-                switch(event){
-                    case 6:
-                        /*// SWITCH ANIMS !!!
-                        dude.animations.clear();
-                        dude.addAnimationFromSpritesheet("left", 5, "./img/dude-bid/left.png");
-                        dude.addAnimationFromSpritesheet("down", 5, "./img/dude-bid/down.png");
-                        dude.addAnimationFromSpritesheet("up", 5, "./img/dude-bid/up.png");
-                        dude.addAnimationFromSpritesheet("right", 5, "./img/dude-bid/right.png");*/
-                    break;
-                }
-                break;
-            case "w4s2":
-                switch(event){
-                    case 0:
-                        System.out.println("PLAYING SFX");
-                        SoundManager.playSFX("./snd/snd_firework.wav");
-                        break;
-                }
-                break;
-        }
+        luaInstance.updateGlobalValue("event", event);
+        luaInstance.fireLuaFunction("event");
         event++;
     }
 
@@ -190,6 +173,7 @@ public class Stage extends JPanel {
         System.out.println(cam.x + " " + cam.y);
         //*/
 
+        luaInstance.fireLuaFunction("onUpdatePre");
         // move camera
         double camMoveSpd = 0.03;
         if(Math.abs(cam.x - camXTarget) > 5 || Math.abs(cam.y - camYTarget) > 5) cam.setCameraPos(lerp(cam.x, camXTarget, camMoveSpd), lerp(cam.y, camYTarget, camMoveSpd)); 
@@ -202,13 +186,15 @@ public class Stage extends JPanel {
         //System.out.println(Conductor.getBeat());
         
         if(beat != Conductor.getBeat()){
+            beat = Conductor.getBeat();
+            luaInstance.fireLuaFunction("onBeatHit", beat);
             //System.out.println(Conductor.getStep());
             //System.out.println("oughhhh my beatssss");
             if(speakersChangeOnBeatHit) speakers.displayNextImage();
-            beat = Conductor.getBeat();
         }
         if(Conductor.getStep() != step) {
             step = Conductor.getStep();
+            luaInstance.fireLuaFunction("onStepHit", step);
             if(step % 2 == 0) {
                 if(ladyLeftRightIdleStyle){
                     if(ladyLastBopDir == 0) {
@@ -295,7 +281,7 @@ public class Stage extends JPanel {
                                 // show loading screen
                                 loading = true;
                                 loadingStep = "FINISHING UP";
-                                curLoadStep = 0;
+                                drawLoadingBar = false;
                                 new Thread(()->{
                                     SoundManager.songClip.close();
                                     updateTimer.stop();
@@ -304,7 +290,8 @@ public class Stage extends JPanel {
                                     // advance story playlist
                                     songPlaylist.remove(0);
 
-                                    Main.main.goToStage();
+                                    if(songPlaylist.size() != 0) Main.main.goToStage();
+                                    else Main.main.goToMainMenuPanel();
                                 }).start();
                                 break;
                             case EVENT:
@@ -367,6 +354,7 @@ public class Stage extends JPanel {
             }
 
         }
+        luaInstance.fireLuaFunction("onUpdate");
     }
 
     private void playDudeAnim(GameNote note){
@@ -902,7 +890,7 @@ public class Stage extends JPanel {
     }
 
     private void setBinds(){
-        this.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_D, 0,false),
+        this.getInputMap().put(KeyStroke.getKeyStroke(binds[0], 0,false),
                 "leftKeyPress");
             this.getActionMap().put("leftKeyPress",
             new AbstractAction() {
@@ -915,7 +903,7 @@ public class Stage extends JPanel {
             }
         );
 
-        this.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_D, 0,true),
+        this.getInputMap().put(KeyStroke.getKeyStroke(binds[0], 0,true),
                 "leftKeyRelease");
             this.getActionMap().put("leftKeyRelease",
             new AbstractAction() {
@@ -928,7 +916,7 @@ public class Stage extends JPanel {
             }
         );
 
-        this.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_F, 0,false),
+        this.getInputMap().put(KeyStroke.getKeyStroke(binds[1], 0,false),
                 "downKeyPress");
             this.getActionMap().put("downKeyPress",
             new AbstractAction() {
@@ -941,7 +929,7 @@ public class Stage extends JPanel {
             }
         );
 
-        this.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_F, 0,true),
+        this.getInputMap().put(KeyStroke.getKeyStroke(binds[1], 0,true),
                 "downKeyRelease");
             this.getActionMap().put("downKeyRelease",
             new AbstractAction() {
@@ -954,7 +942,7 @@ public class Stage extends JPanel {
             }
         );
 
-        this.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_J, 0,false),
+        this.getInputMap().put(KeyStroke.getKeyStroke(binds[2], 0,false),
                 "upKeyPress");
             this.getActionMap().put("upKeyPress",
             new AbstractAction() {
@@ -967,7 +955,7 @@ public class Stage extends JPanel {
             }
         );
 
-        this.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_J, 0,true),
+        this.getInputMap().put(KeyStroke.getKeyStroke(binds[2], 0,true),
                 "upKeyRelease");
             this.getActionMap().put("upKeyRelease",
             new AbstractAction() {
@@ -980,7 +968,7 @@ public class Stage extends JPanel {
             }
         );
 
-        this.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_K, 0,false),
+        this.getInputMap().put(KeyStroke.getKeyStroke(binds[3], 0,false),
                 "rightKeyPress");
             this.getActionMap().put("rightKeyPress",
             new AbstractAction() {
@@ -993,7 +981,7 @@ public class Stage extends JPanel {
             }
         );
 
-        this.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_K, 0,true),
+        this.getInputMap().put(KeyStroke.getKeyStroke(binds[3], 0,true),
                 "rightKeyRelease");
             this.getActionMap().put("rightKeyRelease",
             new AbstractAction() {
@@ -1085,6 +1073,7 @@ public class Stage extends JPanel {
 
     public Stage(){
         instance = this;
+        FadeManager.cancelFade();
         cam = new Camera(0, 0, 1.5);
         cam.setCameraPos(168, -128);
         setBinds();
@@ -1121,11 +1110,7 @@ public class Stage extends JPanel {
             if(songScanner != null) songScanner.close();
         }
 
-        try{
-            //System.out.println(data);
-        } catch(Exception e){
-            e.printStackTrace();
-        }
+        luaInstance = new FreeDownloadLua(new SongData(load));
 
         curLoadStep++;
         loadingStep = "PARSING SONG DATA";
@@ -1155,6 +1140,7 @@ public class Stage extends JPanel {
         loadingStep = "LOADING CHART";
         curChart = loadChart(load);
 
+        luaInstance.fireLuaFunction("onCreate");
         loading = false;
         }).start();
     }
@@ -1268,6 +1254,7 @@ public class Stage extends JPanel {
         if(!loading){
             //cam.moveCamera(-1, -1);
             cam.drawViewport((Graphics2D) g);
+            FadeManager.drawSelf((Graphics2D) g);
             //cam.changeCameraZoom(-0.005);
             //cam.moveCamera(Math.cos(draws/5)*10, Math.sin(draws/5)*10);
 
@@ -1291,11 +1278,14 @@ public class Stage extends JPanel {
             p = fm.stringWidth(loadingStep)/2;
             h = fm.getHeight();
             g.drawString(loadingStep, (Main.windowWidth/2)-p, ((Main.windowHeight/2)+100)-h);
-            Graphics2D g2 = (Graphics2D) g;
-            g2.setStroke(new BasicStroke(3));
-            g2.drawRect(Main.windowWidth/2-250, Main.windowHeight/2+200, 250*2, 40);
-            g2.fillRect(Main.windowWidth/2-245, Main.windowHeight/2+205, (int)(((245*2)+1)*(curLoadStep*1.0/(maxLoadStep))), 31);
-            g2.dispose();
+            
+            if(drawLoadingBar){
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setStroke(new BasicStroke(3));
+                g2.drawRect(Main.windowWidth/2-250, Main.windowHeight/2+200, 250*2, 40);
+                g2.fillRect(Main.windowWidth/2-245, Main.windowHeight/2+205, (int)(((245*2)+1)*(curLoadStep*1.0/(maxLoadStep))), 31);
+                g2.dispose();
+            }
         }
     }
 }

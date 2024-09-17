@@ -5,7 +5,8 @@ public class GameNote extends Note {
     public NoteType type;
     public boolean shouldDraw = true;
     public boolean drawCap = false;
-    private double yy;
+    public double actualYY;
+    public double yy;
     public boolean autohit = false;
     public boolean hit = false;
 
@@ -13,6 +14,7 @@ public class GameNote extends Note {
         super(x, y, direction, camera, fump, playerNote);
         this.type = type;
         this.yy = y;
+        this.actualYY = y;
         setImage();
     }
 
@@ -20,6 +22,7 @@ public class GameNote extends Note {
         super(x, y, direction, camera, fump, playerNote);
         this.type = type;
         this.yy = y;
+        this.actualYY = y;
         setImage();
     }
 
@@ -27,6 +30,7 @@ public class GameNote extends Note {
         super(x, y, direction, camera, fump, playerNote);
         this.type = NoteType.convertIntToNoteType(type);
         this.yy = y;
+        this.actualYY = y;
         setImage();
     }
 
@@ -34,6 +38,7 @@ public class GameNote extends Note {
         super(x, y, direction, camera, fump, playerNote);
         this.type = NoteType.convertIntToNoteType(type);
         this.yy = y;
+        this.actualYY = y;
         setImage();
     }
 

@@ -16,7 +16,10 @@ public class Main extends JFrame {
     // this is probably a bad idea but meh
     public static RecordScratchScreen rss;
     public static MainMenu mm;
+    public static TempMainMenu tmm;
+    public static TempOptionsMenu tom;
     public static Stage s;
+    public static TitlePanel tp;
 
     public static final int targetFPS = 9999;
     public static final int TICK_TIME = 17;
@@ -35,7 +38,7 @@ public class Main extends JFrame {
         addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
-                //ClientPrefs.saveAllData();
+                ClientPrefs.saveAllSets();
                 setVisible(false);
                 dispose();
                 System.exit(0);
@@ -77,7 +80,7 @@ public class Main extends JFrame {
     }
 
     public void goToTitlePanel(){
-        TitlePanel tp = new TitlePanel();
+        tp = new TitlePanel();
         getContentPane().removeAll();
         getContentPane().add(tp, BorderLayout.CENTER);
         revalidate();
@@ -119,6 +122,26 @@ public class Main extends JFrame {
         FadeManager.cancelFade();
         FadeManager.fadeIn(Color.BLACK, 1, 1);
         mm.requestFocusInWindow();
+    }
+
+    public void goToMainMenuPanel(){
+        if(s != null) s=null;
+        if(tp != null) tp=null;
+        tmm = new TempMainMenu();
+        getContentPane().removeAll();
+        getContentPane().add(tmm, BorderLayout.CENTER);
+        revalidate();
+        tmm.requestFocusInWindow();
+    }
+
+    public void goToOptionsPanel(){
+        if(tmm != null) tmm=null;
+        if(tp != null) tp=null;
+        tom = new TempOptionsMenu();
+        getContentPane().removeAll();
+        getContentPane().add(tom, BorderLayout.CENTER);
+        revalidate();
+        tom.requestFocusInWindow();
     }
 
     public static void main(String[] args) throws Exception {

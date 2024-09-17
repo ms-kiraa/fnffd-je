@@ -61,9 +61,9 @@ public class TitlePanel extends MusicBeatPanel {
                         SoundManager.playSFX("./snd/snd_josh.wav");
                         Timer t = new Timer(1000, (a)->{
                             FadeManager.cancelFade();
-                            SoundManager.songClip.stop();
+                            //SoundManager.songClip.stop();
                             FadeManager.fadeOut(Color.BLACK, 1, 1, ()->{
-                                Main.main.goToStage();
+                                Main.main.goToMainMenuPanel();
                             });
                         });
                         t.setRepeats(false);

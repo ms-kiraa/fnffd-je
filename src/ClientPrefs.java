@@ -4,7 +4,7 @@ import java.io.File;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
-
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -60,7 +60,33 @@ public class ClientPrefs {
         }
     }
 
+    public static String set(String setting, Object value){
+        settings.put(setting, value.toString());
+        String curValue = settings.get(setting);
+        return curValue;
+    }
+
     public static boolean getDownscroll(){
         return Boolean.parseBoolean(settings.get("downscroll"));
+    }
+
+    public static int[] getBinds(){
+        int[] binds = {Integer.parseInt(settings.get("left_bind")), Integer.parseInt(settings.get("down_bind")), Integer.parseInt(settings.get("up_bind")), Integer.parseInt(settings.get("right_bind"))};
+        return binds;
+    }
+
+    public static void saveAllSets(){
+        ArrayList<String> sets = new ArrayList<>();
+        for(String key : settings.keySet()){
+            String add = key+":"+settings.get(key);
+            sets.add(add);
+            System.out.println(add);
+        }
+        try {
+            Files.write(Paths.get(saveDataDirectory.getAbsolutePath() + "/settings.txt"), sets);
+        } catch (Exception e) {
+            System.err.println("Failed to save settings");
+            e.printStackTrace();
+        }
     }
 }

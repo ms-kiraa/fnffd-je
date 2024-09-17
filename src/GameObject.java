@@ -18,6 +18,8 @@ public class GameObject {
     public boolean camScaleAffectsScale = true;
     public double camScaleAffectAmount = 1;
 
+    public boolean visible = true;
+
     public Rectangle bounds;
     public BufferedImage image;
 
@@ -90,6 +92,7 @@ public class GameObject {
     }
 
     protected void render(Graphics2D g, Camera cam, BufferedImage img) {
+        if(!visible) return;
         // Calculate the center of the camera
         //double camCenterX = cam.x + cam.getBounds().width / 2.0;
         //double camCenterY = cam.y + cam.getBounds().height / 2.0;
