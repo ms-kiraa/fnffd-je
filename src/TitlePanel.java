@@ -25,7 +25,7 @@ public class TitlePanel extends MusicBeatPanel {
     
     // assets
     GameObject bg;
-    AnimatedGameObject javaDude;
+    FXAnimatedGameObject javaDude;
     GameObject enter;
     GameObject logo;
 
@@ -87,7 +87,12 @@ public class TitlePanel extends MusicBeatPanel {
             logo = new GameObject(c1, 50, logoSize, logoI, cam);
             logo.scrollFactor = 0;
             cam.addObjectToLayer("UI", logo);
-            javaDude = new AnimatedGameObject(0, 0, 3, cam);
+            javaDude = new FXAnimatedGameObject(0, 0, 3, cam);
+            if(ClientPrefs.dudeSkin == DudeSkins.Custom) {
+                javaDude.addEffect(new ColorReplaceEffect(ClientPrefs.customFromValues, ClientPrefs.customToValues));
+            } else {
+                javaDude.addEffect(ClientPrefs.dudeSkin.skin);
+            }
             javaDude.addAnimationFromSpritesheet("boing", 10, "./img/ui/menu/main/dumb.png");
             javaDude.frameTimeMS = 44;
             BufferedImage fr = javaDude.animations.get("boing").get(0);
@@ -206,6 +211,7 @@ public class TitlePanel extends MusicBeatPanel {
                     break;
                 case 8:
                     skipIntro(true);
+                    javaDude.playAnimation("boing");
                     break;
             }
         }

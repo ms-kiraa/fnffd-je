@@ -19,7 +19,7 @@ import javax.swing.Timer;
 
 public class TempMainMenu extends MusicBeatPanel {
     private int curSelected = 0;
-    private String[] options = {"play", "open options", ""};
+    private String[] options = {"play", "open options"};
     private boolean selected = false;
 
     public TempMainMenu(){super();}

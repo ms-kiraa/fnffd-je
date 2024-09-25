@@ -3,25 +3,125 @@ import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.Transferable;
+import java.awt.dnd.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Arrays;
 
+import javax.imageio.ImageIO;
 import javax.swing.AbstractAction;
 import javax.swing.KeyStroke;
 
 public class TempOptionsMenu extends MusicBeatPanel implements KeyListener {
     int curSelected = 0;
-    String[] options = {"downscroll: " + ClientPrefs.getDownscroll(), "change bindings", "", "back"};
+    String[] options = {"downscroll: " + ClientPrefs.getDownscroll(), "change bindings", "change dude skin", "", "back"};
 
     boolean binding = false;
     boolean ignoreNextBind = false;
     int bindStep = 0;
 
+    boolean choosingDudeSkin = false;
+    int curDudeSkin = 0;
+    DudeSkins[] skins;
+    FXGameObject[] skinDisplays;
+
+    Camera cam;
+
+    // for dragging and dropping dude skins
+    private Color dropConfirmColor = new Color(0, 150, 0);
+    private DropTarget target;
+    private static BufferedImage template = null;
+    private boolean dragged = false;
+
     public TempOptionsMenu(){super();}
 
     @Override
     protected void create(){
+        cam = new Camera();
+        skins = DudeSkins.values();
+        skinDisplays = new FXGameObject[skins.length];
+        // set up droptarget
+        try{
+            template = ImageIO.read(new File("./img/dude/skin-template.png"));
+        } catch(Exception e){
+            e.printStackTrace();
+        }
+        target = new DropTarget(this, new DropTargetListener() {
+
+            @Override
+            public void dragEnter(DropTargetDragEvent dtde) {
+                FadeManager.cancelFade();
+                FadeManager.fadeOut(dropConfirmColor, 1, 1);
+                dragged = true;
+            }
+
+            @Override
+            public void dragOver(DropTargetDragEvent dtde) {}
+
+            @Override
+            public void dropActionChanged(DropTargetDragEvent dtde) {}
+
+            @Override
+            public void dragExit(DropTargetEvent dte) {
+                FadeManager.cancelFade();
+                FadeManager.fadeIn(dropConfirmColor, 1, 1);
+                dragged = false;
+            }
+
+            @Override
+            public void drop(DropTargetDropEvent dtde) {
+            // Accept copy drops
+            dtde.acceptDrop(DnDConstants.ACTION_COPY);
+            // Get the transfer which can provide the dropped item data
+            Transferable transferable = dtde.getTransferable();
+            // Get the data formats of the dropped item
+            DataFlavor[] flavors = transferable.getTransferDataFlavors();
+
+            // Loop through the flavors
+            for (DataFlavor flavor : flavors) {
+                try {
+                    if (flavor.isFlavorJavaFileListType()) {
+                        @SuppressWarnings("unchecked") // fuck you
+                        java.util.List <File> files = (java.util.List<File>)  transferable.getTransferData(flavor);
+                        for (File file : files) {
+                            getColorsFromImage(file);
+                        }
+                    }
+                } catch (Exception e) {
+                    // Print out the error stack
+                    e.printStackTrace();
+                }
+            }
+            // Inform that the drop is complete
+            dtde.dropComplete(true);
+            FadeManager.cancelFade();
+            FadeManager.fadeIn(dropConfirmColor, 1, 1);
+            dragged = false;
+            }
+            
+        });
+        for(int i = 0; i < skins.length; i++){
+            if(skins[i] == DudeSkins.Custom && (ClientPrefs.customFromValues == null || ClientPrefs.customToValues == null)) continue;
+            try {
+                skinDisplays[i] = new FXGameObject(0, 0, 3, ImageIO.read(new File("./img/dude/skin-template.png")), cam);
+                skinDisplays[i].setPosition(Main.windowWidth/2-(skinDisplays[i].image.getWidth()*skinDisplays[i].scale)/2, Main.windowHeight/2-(skinDisplays[i].image.getHeight()*skinDisplays[i].scale)/2);
+                if(skins[i] != DudeSkins.Custom) {
+                    skinDisplays[i].addEffect(skins[i].skin);
+                } else {
+                    skinDisplays[i].addEffect(new ColorReplaceEffect(ClientPrefs.customFromValues, ClientPrefs.customFromValues));
+                }
+                skinDisplays[i].visible = false;
+                cam.addObjectToLayer("Objects", skinDisplays[i]);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
         if(!SoundManager.songClip.isOpen()) SoundManager.playSong("./snd/mus_game.wav", null);
         setBackground(Color.BLACK);
         this.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_DOWN, 0,false),
@@ -52,6 +152,34 @@ public class TempOptionsMenu extends MusicBeatPanel implements KeyListener {
             }
         );
 
+        this.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_LEFT, 0,false),
+            "left");
+        this.getActionMap().put("left",
+            new AbstractAction() {
+
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    if(binding || !choosingDudeSkin) return;
+                    changeDudeSkinSelection(-1);
+                }
+
+            }
+        );
+
+        this.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT, 0,false),
+            "right");
+        this.getActionMap().put("right",
+            new AbstractAction() {
+
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    if(binding || !choosingDudeSkin) return;
+                    changeDudeSkinSelection(1);
+                }
+
+            }
+        );
+
         this.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0,false),
             "enter");
         this.getActionMap().put("enter",
@@ -60,6 +188,11 @@ public class TempOptionsMenu extends MusicBeatPanel implements KeyListener {
                 @Override
                 public void actionPerformed(ActionEvent e) {
                     if(binding) return;
+                    if(choosingDudeSkin) {
+                        choosingDudeSkin = false;
+                        ClientPrefs.dudeSkin = skins[curDudeSkin];
+                        return;
+                    }
                     switch(curSelected){
                         case 0:
                             options[curSelected] = "downscroll: " + ClientPrefs.set("downscroll", !ClientPrefs.getDownscroll());
@@ -70,7 +203,17 @@ public class TempOptionsMenu extends MusicBeatPanel implements KeyListener {
                             ignoreNextBind = true;
                             addKeyListener(Main.tom);
                             break;
-                        case 3:
+                        case 2:
+                            for(int i = 0; i < DudeSkins.values().length; i++){
+                                if(DudeSkins.values()[i] == ClientPrefs.dudeSkin) {
+                                    curDudeSkin = i;
+                                    break;
+                                }
+                            }
+                            changeDudeSkinSelection(0);
+                            choosingDudeSkin = true;
+                            break;
+                        case 4:
                             FadeManager.fadeOut(Color.BLACK, 1, 1, ()->{
                                 redraw.stop();
                                 Main.main.goToMainMenuPanel();
@@ -118,11 +261,72 @@ public class TempOptionsMenu extends MusicBeatPanel implements KeyListener {
         }
     }
 
+    private void getColorsFromImage(File img){
+        BufferedImage bi = null;
+        try{
+            bi = ImageIO.read(img);
+        }catch(Exception e){
+            e.printStackTrace();
+            return;
+        }
+        // TODO: make screen flash red and show error "please drop a valid dude skin!" if image doesnt match template's dimensions, use timer to flip bool to make it not draw error msg
+        ArrayList<Color> changedColorsFrom = new ArrayList<>();
+        ArrayList<Color> changedColorsTo = new ArrayList<>();
+        for(int y = 0; y < bi.getHeight(); y++){
+            for(int x = 0; x < bi.getWidth(); x++){
+                Color pixel = new Color(bi.getRGB(x, y));
+                //System.out.println(pixel);
+                Color templatePixel = new Color(template.getRGB(x, y));
+                if(!colorEquals(pixel, templatePixel) && !changedColorsFrom.contains(templatePixel)) {
+                    System.out.println("FOUND COLOR MISMATCH AT "+x+", "+y+":\nWAS "+templatePixel+"\nIS NOW: "+pixel);
+                    changedColorsFrom.add(templatePixel);
+                    changedColorsTo.add(pixel);
+                } else {
+                    //System.out.println("looks like it checks out, template " + templatePixel + " response " + pixel);
+                }
+            }
+        }
+        ArrayList<ArrayList<Integer>> rgbFrom = new ArrayList<>();
+        ArrayList<ArrayList<Integer>> rgbTo = new ArrayList<>();
+        for(Color c : changedColorsFrom) {
+            rgbFrom.add(new ArrayList<Integer>(Arrays.asList(c.getRed(), c.getGreen(), c.getBlue())));
+        }
+        for(Color c : changedColorsTo) {
+            rgbTo.add(new ArrayList<Integer>(Arrays.asList(c.getRed(), c.getGreen(), c.getBlue())));
+        }
+        ClientPrefs.customFromValues = rgbFrom;
+        ClientPrefs.customToValues = rgbTo;
+        try {
+            skinDisplays[skins.length-1] = new FXGameObject(0, 0, 3, ImageIO.read(new File("./img/dude/skin-template.png")), cam);
+            skinDisplays[skins.length-1].setPosition(Main.windowWidth/2-(skinDisplays[skins.length-1].image.getWidth()*skinDisplays[skins.length-1].scale)/2, Main.windowHeight/2-(skinDisplays[skins.length-1].image.getHeight()*skinDisplays[skins.length-1].scale)/2);
+            skinDisplays[skins.length-1].addEffect(new ColorReplaceEffect(rgbFrom, rgbTo));
+            skinDisplays[skins.length-1].visible = false;
+            cam.addObjectToLayer("Objects", skinDisplays[skins.length-1]);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private boolean colorEquals(Color color1, Color color2){
+        return (color1.getRGB() == color2.getRGB());
+    }
+
     private void changeSelection(int amt){
         curSelected += amt;
         if(curSelected < 0) curSelected = options.length-1;
         if(curSelected == options.length) curSelected = 0;
         if(options[curSelected].equals("")) changeSelection(amt);
+    }
+
+
+    private void changeDudeSkinSelection(int amt){
+        curDudeSkin += amt;
+        if(curDudeSkin >= skins.length) curDudeSkin = 0;
+        if(curDudeSkin < 0) curDudeSkin = skins.length-1;
+        skinDisplays[curDudeSkin].visible = true;
+        for(int i = 0; i < skins.length; i++){
+            if(i != curDudeSkin) skinDisplays[i].visible = false;
+        }
     }
 
     private void drawCenteredText(String drawString, int y, Graphics g){
@@ -139,7 +343,7 @@ public class TempOptionsMenu extends MusicBeatPanel implements KeyListener {
         g.setFont(new Font("Comic Sans MS", Font.PLAIN, 32));
         drawCenteredText("welcome to the temporary options menu", 50, g);
         
-        if(!binding){
+        if(!binding && !choosingDudeSkin){
             for(int i = 0; i < options.length; i++){
                 if(curSelected == i) {
                     g.setColor(Color.YELLOW);
@@ -149,7 +353,7 @@ public class TempOptionsMenu extends MusicBeatPanel implements KeyListener {
                     drawCenteredText(options[i], 400+(50*i), g);
                 }
             }
-        } else {
+        } else if(binding) {
             String key = "";
             switch(bindStep){
                 case 0:
@@ -166,8 +370,16 @@ public class TempOptionsMenu extends MusicBeatPanel implements KeyListener {
                     break;
             }
             drawCenteredText("binding " + key + " key", Main.windowHeight/2, g);
+        } else if(choosingDudeSkin) {
+            drawCenteredText("choose your dude.", 100, g);
+            drawCenteredText("< " + skins[curDudeSkin].name + " >", Main.windowHeight-100, g);
+            cam.drawViewport((Graphics2D) g);
         }
 
         FadeManager.drawSelf((Graphics2D) g);
+        if(dragged){
+            g.setFont(new Font("Comic Sans MS", Font.BOLD, 32));
+            drawCenteredText("drop image to create custom dude skin!", Main.windowHeight/2, g);
+        }
     }
 }

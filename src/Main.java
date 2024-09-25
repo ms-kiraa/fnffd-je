@@ -126,7 +126,10 @@ public class Main extends JFrame {
 
     public void goToMainMenuPanel(){
         if(s != null) s=null;
-        if(tp != null) tp=null;
+        if(tp != null) {
+            tp.redraw.stop();
+            tp=null;
+        }
         tmm = new TempMainMenu();
         getContentPane().removeAll();
         getContentPane().add(tmm, BorderLayout.CENTER);

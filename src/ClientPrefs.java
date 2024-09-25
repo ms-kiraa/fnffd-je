@@ -17,6 +17,12 @@ public class ClientPrefs {
     private static File saveDataDirectory = new File(System.getProperty("user.home") + "/AppData/Local/ms_kiraa/FNFFD-JE/");
     // holds al lthe settings and stuff :)
     public static Map<String, String> settings = new HashMap<>();
+    // chosen dude skin
+    public static DudeSkins dudeSkin = DudeSkins.Default;
+
+    // custom dude skin values
+    public static ArrayList<ArrayList<Integer>> customFromValues = null;
+    public static ArrayList<ArrayList<Integer>> customToValues = null;
 
     // make it non-instantiatable
     private ClientPrefs(){}
@@ -36,7 +42,7 @@ public class ClientPrefs {
         }
         if(!found){
             // set up default settings
-            List<String> sets = Arrays.asList("downscroll:false", "left_bind:"+KeyEvent.VK_LEFT, "down_bind:"+KeyEvent.VK_DOWN, "up_bind:"+KeyEvent.VK_UP, "right_bind:"+KeyEvent.VK_RIGHT);
+            List<String> sets = Arrays.asList("downscroll:false", "left_bind:"+KeyEvent.VK_LEFT, "down_bind:"+KeyEvent.VK_DOWN, "up_bind:"+KeyEvent.VK_UP, "right_bind:"+KeyEvent.VK_RIGHT, "dude_skin:"+DudeSkins.values()[0]);
 
             // save default settings
             try {
@@ -49,10 +55,41 @@ public class ClientPrefs {
 
         // now that data (probably) exists, we can attempt to load it
         try (Scanner scan = new Scanner(new File(saveDataDirectory.getAbsolutePath() + "/settings.txt"))) {
+            boolean loadingFromValues = false, loadingToValues = false;
             while(scan.hasNextLine()){
-                String[] split = scan.nextLine().split(":");
+                String line = scan.nextLine();
+                String[] split = line.split(":");
                 System.out.println(split[0]);
-                settings.put(split[0], split[1]);
+                if(line.equals("[CUSTOM DUDE SKIN FROM VALUES]")) {
+                    customFromValues = new ArrayList<>();
+                    loadingFromValues = true;
+                    System.out.println("adding from values");
+                    continue;
+                } else if(line.equals("[CUSTOM DUDE SKIN TO VALUES]")){
+                    customToValues = new ArrayList<>();
+                    loadingFromValues = false;
+                    loadingToValues = true;
+                    System.out.println("adding to values");
+                    continue;
+                }
+                if(!loadingFromValues && !loadingToValues){
+                    if(split[0].equals("dude_skin")){
+                        dudeSkin = DudeSkins.valueOf(split[1]);
+                    } else if(!line.startsWith("[")){
+                        settings.put(split[0], split[1]);
+                    }
+                } else {
+                    String[] vals = line.split(",", 0);
+                    ArrayList<Integer> add = new ArrayList<>();
+                    for(String val : vals) {
+                        add.add(Integer.parseInt(val));
+                    }
+                    if(loadingFromValues) {
+                        customFromValues.add(add);
+                    } else {
+                        customToValues.add(add);
+                    }
+                }
             }
             scan.close();
         } catch (Exception e) {
@@ -81,6 +118,17 @@ public class ClientPrefs {
             String add = key+":"+settings.get(key);
             sets.add(add);
             System.out.println(add);
+        }
+        sets.add("dude_skin:"+dudeSkin);
+        if(customFromValues != null && customToValues != null) {
+            sets.add("[CUSTOM DUDE SKIN FROM VALUES]");
+            for(ArrayList<Integer> color : customFromValues) {
+                sets.add(color.get(0)+","+color.get(1)+","+color.get(2));
+            }
+            sets.add("[CUSTOM DUDE SKIN TO VALUES]");
+            for(ArrayList<Integer> color : customToValues) {
+                sets.add(color.get(0)+","+color.get(1)+","+color.get(2));
+            }
         }
         try {
             Files.write(Paths.get(saveDataDirectory.getAbsolutePath() + "/settings.txt"), sets);

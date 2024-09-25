@@ -70,7 +70,7 @@ public class Stage extends JPanel {
     Clip song;
     FreeDownloadLua luaInstance;
 
-    AnimatedGameObject dude;
+    FXAnimatedGameObject dude;
     String dudeChar = "dude";
     boolean dudeLeftRightIdleStyle = false;
 
@@ -148,8 +148,7 @@ public class Stage extends JPanel {
     // find what event to execute and do it
     private void doEvent(){
         //System.out.println("executing event " + event);
-        luaInstance.updateGlobalValue("event", event);
-        luaInstance.fireLuaFunction("event");
+        luaInstance.fireLuaFunction("event", event);
         event++;
     }
 
@@ -513,7 +512,13 @@ public class Stage extends JPanel {
         boolean hasAyy = (boolean) data.get("has-ayy");
         boolean leftRightIdle = (boolean) data.get("left-right-idle");
         double scale = (double) data.get("scale");
-        dude = new AnimatedGameObject(525, 290, scale, cam);
+        dude = new FXAnimatedGameObject(525, 290, scale, cam);
+        if(ClientPrefs.dudeSkin == DudeSkins.Custom){
+            dude.addEffect(new ColorReplaceEffect(ClientPrefs.customFromValues, ClientPrefs.customToValues));
+        } else {
+            dude.addEffect(ClientPrefs.dudeSkin.skin);
+        }
+        
         if(hasPoses){
             dude.addAnimationFromSpritesheet("left", getFrameData("left", charName), "./img/"+charName+"/left.png");
             dude.addAnimationFromSpritesheet("down", getFrameData("down", charName), "./img/"+charName+"/down.png");
