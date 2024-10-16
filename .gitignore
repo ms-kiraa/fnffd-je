@@ -25,6 +25,12 @@ bin/
 # folder for uhhhhh uhhhhhhh no skins!! thats for me only!!!
 skin refs/
 
+# folder for SONGS THAT DONT HAVE A SONG FOLDER YET!!!!!!
+oldwavs/
+
+# How to add individual file to gitignore google
+SONG_TO_LOAD_NAME.txt
+
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 replay_pid*

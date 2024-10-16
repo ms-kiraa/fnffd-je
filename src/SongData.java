@@ -1,6 +1,9 @@
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Scanner;
+
+import javax.imageio.ImageIO;
 
 public class SongData {
     // holds info about a song
@@ -25,8 +28,13 @@ public class SongData {
         // load song info
         folder = new File(songFolder, folderName);
         if(!folder.exists()) {
-            System.err.println("Could not find song with folder name "+folderName);
-            return;
+            throw new IllegalArgumentException("Could not find song with folder name "+folderName);
+        }
+        fileName = folder.getName();
+        try{
+            icon = ImageIO.read(new File(folder, "icon.png"));
+        }catch(Exception e){
+            e.printStackTrace();
         }
         File ld = new File(folder, "data.txt");
         try(Scanner scan = new Scanner(ld)){
@@ -58,15 +66,30 @@ public class SongData {
         } catch(Exception e){
             e.printStackTrace();
         }
+        // i really do wonder if there's a better way to do this
+        if(formalName == null) formalName = "null";
+        if(dudeChar == null) dudeChar = "dude";
+        if(badguyChar == null) badguyChar = "strad";
+        if(ladyChar == null) ladyChar = "lady";
+        if(stage == null) stage = "stage";
+        if(noteskin == null) noteskin = "default";
     }
 
     public static SongData[] loadAllSongs(){
         SongData[] ret;
         File[] songs = songFolder.listFiles();
-        ret = new SongData[songs.length];
-        for(int i = 0; i < songs.length; i++){
-            ret[i] = new SongData(songs[i].getName());
+
+        ArrayList<SongData> retList = new ArrayList<>();
+        for(int i = 0; i < songs.length; i++) {
+            try{
+                SongData add = new SongData(songs[i].getName().replaceFirst("[.][^.]+$", ""));
+                retList.add(add);
+            } catch (IllegalArgumentException iae){
+                System.err.println("Got invalid song " + songs[i].getName() + "; ignoring");
+            }
         }
+        ret = new SongData[retList.size()];
+        retList.toArray(ret);
         return ret;
     }
 }

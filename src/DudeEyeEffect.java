@@ -28,4 +28,10 @@ public class DudeEyeEffect implements ImageEffect {
         ret = lookup.filter(ret, null);
         return ret;
     }
+
+    @Override
+    public BufferedImage remove(BufferedImage bi) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'remove'");
+    }
 }

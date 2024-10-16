@@ -9,6 +9,8 @@ function onCreate()
         print("setting visiblity "..i)
         setNoteVisibility("BadGuy", i, false)
     end
+    print("aah! "..getProperty("songName"))
+    --setPropertyOfObject("dude", "x", 0)
 end
 
 function onUpdate()
@@ -20,11 +22,5 @@ function onUpdate()
             pos[i] +
             (math.sin(getStepDb()+i)*25))
         end
-    end
-end
-
-function onStepHit(curStep)
-    if curStep == 4 then
-        setCamTarget(0, 0)
     end
 end

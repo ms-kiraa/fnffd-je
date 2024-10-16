@@ -279,6 +279,7 @@ public class Camera {
             for(GameObject object : layers.get(key)) {
                 if(true) { // TODO: check to make sure the camera can actually see it lol
                     object.render(g, this);
+                    object.updateHitbox();
                     // drawn++;
                 }
             }

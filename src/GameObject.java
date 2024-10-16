@@ -19,6 +19,8 @@ public class GameObject {
     public double camScaleAffectAmount = 1;
 
     public boolean visible = true;
+    public boolean drawHitbox = false;
+    public boolean ignoreCamScale = false;
 
     public Rectangle bounds;
     public BufferedImage image;
@@ -98,8 +100,8 @@ public class GameObject {
         //double camCenterY = cam.y + cam.getBounds().height / 2.0;
     
         // Calculate the position of the image relative to the center of the camera
-        double imgPosX = ((x - (cam.x*scrollFactor)) * cam.scaleFactor/* + cam.getBounds().width / 2.0*/);
-        double imgPosY = ((y - (cam.y*scrollFactor)) * cam.scaleFactor/* + cam.getBounds().height / 2.0*/);
+        double imgPosX = ((x - (cam.x*scrollFactor)) * (ignoreCamScale ? 1 : cam.scaleFactor)/* + cam.getBounds().width / 2.0*/);
+        double imgPosY = ((y - (cam.y*scrollFactor)) * (ignoreCamScale ? 1 : cam.scaleFactor)/* + cam.getBounds().height / 2.0*/);
     
         // Draw the image with the new calculated positions
         // the stupid zoom doesnt work very well but thats ok ill barely use it
@@ -108,11 +110,16 @@ public class GameObject {
         g.setComposite(ac);
         g.drawImage(img, (int) imgPosX, (int) imgPosY, (int) ((img.getWidth()*scale) * cam.scaleFactor), (int) ((img.getHeight()*scale) * cam.scaleFactor), null);
         g.setComposite(pre);
+        if(drawHitbox) g.drawRect(bounds.x, bounds.y, bounds.width, bounds.height);
     }
 
     private void recalculateBounds(){
-        bounds.setRect((x-(cam.x)*cam.scaleFactor), (y-(cam.y)*cam.scaleFactor), (this.image.getWidth()*scale)*cam.scaleFactor, (this.image.getHeight()*scale)*cam.scaleFactor);
-        bounds.setLocation((int)((x-bounds.getWidth())-cam.x), (int)((y-bounds.getHeight())-cam.y));
+        bounds.setRect((x+(cam.x-cam.getBounds().width/2)*cam.scaleFactor), (y+(cam.y-cam.getBounds().height/2)*cam.scaleFactor), (this.image.getWidth()*scale)*cam.scaleFactor, (this.image.getHeight()*scale)*cam.scaleFactor);
+        bounds.setLocation((int)(((x)-(cam.x)*scrollFactor)*cam.scaleFactor), (int)(((y)-(cam.y)*scrollFactor)*cam.scaleFactor));
+    }
+
+    public void updateHitbox(){
+        recalculateBounds();
     }
 
 }

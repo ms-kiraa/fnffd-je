@@ -19,7 +19,7 @@ import javax.swing.Timer;
 
 public class TempMainMenu extends MusicBeatPanel {
     private int curSelected = 0;
-    private String[] options = {"play", "open options"};
+    private String[] options = {"play", "freeplay menu", "open options"};
     private boolean selected = false;
 
     public TempMainMenu(){super();}
@@ -102,8 +102,12 @@ public class TempMainMenu extends MusicBeatPanel {
                                     } catch (Exception ex) {
                                         ex.printStackTrace();
                                     }
+                                    SoundManager.songClip.loop(0);
                                     SoundManager.songClip.stop();
                                     Main.main.goToStage();
+                                    break;
+                                case "freeplay menu":
+                                    Main.main.goToFreeplay();
                                     break;
                                 case "open options":
                                     Main.main.goToOptionsPanel();

@@ -1,4 +1,4 @@
-name:I, Robot
+name:i, robot
 dude-char:dude-gaw
 badguy-char:teachvee
 lady-char:lady

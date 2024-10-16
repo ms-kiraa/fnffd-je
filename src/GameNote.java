@@ -81,8 +81,9 @@ public class GameNote extends Note {
             case ENEMY_CAM:
             case MIDDLE_CAM:
             case AYY:
-                //basePath += "fump/spr_notefump_";
-                shouldDraw = false;
+                basePath += "fump/spr_notefump_";
+                if(!ClientPrefs.getNoteDebug()) shouldDraw = false;
+                else alpha = 0.5f;
                 autohit = true;
                 break;
             case HOLD:
@@ -91,12 +92,15 @@ public class GameNote extends Note {
                 break;
             case EVENT:
                 basePath += "event/spr_eventnote";
+                if(!ClientPrefs.getNoteDebug()) shouldDraw = false;
+                else alpha = 0.5f;
                 autohit = true;
                 break;
             case END_SONG_TRIGGER:
                 basePath += "spr_noteshold_";
                 autohit = true;
-                shouldDraw = false;
+                if(!ClientPrefs.getNoteDebug()) shouldDraw = false;
+                else alpha = 0.5f;
                 break;
             default:
                 if(!fumpNote){
@@ -128,7 +132,7 @@ public class GameNote extends Note {
                 g2.drawImage(cap, 0,merged.getHeight()-cap.getHeight(), null);
                 g2.drawImage(hold, 0, 0, null);
             } else {
-                // XXX: this makes it so you have to hold the note for longer, really stupid dumb "solution" coming up
+                // FIXME: this makes it so you have to hold the note for longer
                 g2.drawImage(hold, 0, merged.getHeight()-hold.getHeight(), null);
                 g2.drawImage(cap, 0, cap.getHeight(), cap.getWidth(), -cap.getHeight(), null);
                 /*// HACK: this is a short-term solution for a problem that really should be fixed in the long run

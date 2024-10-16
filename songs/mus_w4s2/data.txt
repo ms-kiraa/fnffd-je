@@ -1,4 +1,4 @@
-name:twinkle
+name:starfire
 dude-char:dude
 badguy-char:buddy
 lady-char:lady

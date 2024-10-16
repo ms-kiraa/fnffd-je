@@ -46,5 +46,18 @@ public class ColorReplaceEffect implements ImageEffect {
         return ret;
     }
 
+    @Override
+    public BufferedImage remove(BufferedImage bi) {
+        BufferedImage ret = copyImage(bi);
+        for(List<Integer> fromRGB : findAndReplace.keySet()){
+            List<Integer> toRGB = findAndReplace.get(fromRGB);
+            Color from = new Color(toRGB.get(0), toRGB.get(1), toRGB.get(2));
+            Color to = new Color(fromRGB.get(0), fromRGB.get(1), fromRGB.get(2));
+            BufferedImageOp lookup = new LookupOp(new ColorMapper(from, to), null);
+            ret = lookup.filter(ret, null);
+        }
+        return ret;
+    }
+
 }
 

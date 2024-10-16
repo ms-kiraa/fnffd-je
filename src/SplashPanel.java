@@ -50,6 +50,7 @@ public class SplashPanel extends JPanel {
                 }
                 in.close();
                 // brute force my way into getting that fucking url
+                // if the layout ever changes (unlikely) this will break
                 String toParse = content.toString();
                 String pre = "\"link\":\"";
                 String imageURLstr = toParse.substring(toParse.indexOf(pre)+pre.length(), toParse.indexOf("\",\"is_animated\""));
@@ -62,9 +63,6 @@ public class SplashPanel extends JPanel {
                 e.printStackTrace();
             }
         }).start();
-
-        // initialize settings
-        ClientPrefs.init();
     }
 
     private void update(){

@@ -8,7 +8,7 @@ import javax.imageio.ImageIO;
 /**
  * The base note class. Comes with variables for controlling notes
  */
-public class Note extends GameObject {
+public class Note extends FXGameObject {
     protected static Map<String, BufferedImage> cache = new HashMap<>();
     public boolean playerNote;
     protected Direction dir;
@@ -48,6 +48,9 @@ public class Note extends GameObject {
         try{
             if(!cache.containsKey(path)){
                 BufferedImage load = ImageIO.read(new File(path));
+                for(ImageEffect e : effects) {
+                    load = e.apply(load);
+                }
                 cache.put(path, load);
             }
             return cache.get(path);

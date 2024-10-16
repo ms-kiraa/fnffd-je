@@ -13,4 +13,9 @@ public class FXGameObject extends GameObject {
         image = effect.apply(image);
     }
 
+    public void removeEffect(ImageEffect effect) {
+        effects.remove(effect);
+        image = effect.remove(image);
+    }
+
 }

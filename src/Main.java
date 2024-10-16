@@ -20,6 +20,7 @@ public class Main extends JFrame {
     public static TempOptionsMenu tom;
     public static Stage s;
     public static TitlePanel tp;
+    public static FreeplayMenuPrototype fm;
 
     public static final int targetFPS = 9999;
     public static final int TICK_TIME = 17;
@@ -39,6 +40,7 @@ public class Main extends JFrame {
             @Override
             public void windowClosing(WindowEvent e) {
                 ClientPrefs.saveAllSets();
+                ClientData.saveScores();
                 setVisible(false);
                 dispose();
                 System.exit(0);
@@ -48,6 +50,11 @@ public class Main extends JFrame {
         setPreferredSize(new Dimension(windowWidth, windowHeight));
         setLayout(new BorderLayout());
         setResizable(false);
+
+        // initialize settings
+        ClientPrefs.init();
+        // initialize scores
+        ClientData.loadScores();
 
         if(!offset){
             getContentPane().add(new SplashPanel(), BorderLayout.CENTER);
@@ -130,6 +137,7 @@ public class Main extends JFrame {
             tp.redraw.stop();
             tp=null;
         }
+        if(tom!=null) tom=null;
         tmm = new TempMainMenu();
         getContentPane().removeAll();
         getContentPane().add(tmm, BorderLayout.CENTER);
@@ -145,6 +153,16 @@ public class Main extends JFrame {
         getContentPane().add(tom, BorderLayout.CENTER);
         revalidate();
         tom.requestFocusInWindow();
+    }
+
+    public void goToFreeplay(){
+        if(tmm != null) tmm=null;
+        if(tp != null) tp=null;
+        fm = new FreeplayMenuPrototype();
+        getContentPane().removeAll();
+        getContentPane().add(fm, BorderLayout.CENTER);
+        revalidate();
+        fm.requestFocusInWindow();
     }
 
     public static void main(String[] args) throws Exception {

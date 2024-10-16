@@ -1,0 +1,6 @@
+name:im gonna thorw up
+dude-char:dude
+badguy-char:buddy
+lady-char:lady
+stage:backyard
+noteskin:default

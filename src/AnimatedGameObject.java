@@ -88,7 +88,7 @@ public class AnimatedGameObject extends GameObject {
                 }
             }
         });
-        // todo: change thread name to make debugging easier
+        animationThread.setName("Animation "+animation+" Thread");
         animationThread.start();
     }
 

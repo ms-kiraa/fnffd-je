@@ -24,6 +24,9 @@ public class ClientPrefs {
     public static ArrayList<ArrayList<Integer>> customFromValues = null;
     public static ArrayList<ArrayList<Integer>> customToValues = null;
 
+    // note colors
+    public static ArrayList<ArrayList<Integer>> noteColors = null;
+
     // make it non-instantiatable
     private ClientPrefs(){}
 
@@ -42,7 +45,7 @@ public class ClientPrefs {
         }
         if(!found){
             // set up default settings
-            List<String> sets = Arrays.asList("downscroll:false", "left_bind:"+KeyEvent.VK_LEFT, "down_bind:"+KeyEvent.VK_DOWN, "up_bind:"+KeyEvent.VK_UP, "right_bind:"+KeyEvent.VK_RIGHT, "dude_skin:"+DudeSkins.values()[0]);
+            List<String> sets = Arrays.asList("downscroll:false", "left_bind:"+KeyEvent.VK_LEFT, "down_bind:"+KeyEvent.VK_DOWN, "up_bind:"+KeyEvent.VK_UP, "right_bind:"+KeyEvent.VK_RIGHT, "note_debug:false", "dude_skin:"+DudeSkins.values()[0]);
 
             // save default settings
             try {
@@ -55,24 +58,30 @@ public class ClientPrefs {
 
         // now that data (probably) exists, we can attempt to load it
         try (Scanner scan = new Scanner(new File(saveDataDirectory.getAbsolutePath() + "/settings.txt"))) {
-            boolean loadingFromValues = false, loadingToValues = false;
+            boolean loadingFromValues = false, loadingToValues = false, loadingNoteColors = false;
             while(scan.hasNextLine()){
                 String line = scan.nextLine();
                 String[] split = line.split(":");
-                System.out.println(split[0]);
-                if(line.equals("[CUSTOM DUDE SKIN FROM VALUES]")) {
+                //System.out.println(split[0]);
+                if(line.equals("[NOTE COLORS]")) {
+                    noteColors = new ArrayList<>();
+                    loadingNoteColors = true;
+                    //System.out.println("adding note colors");
+                    continue;
+                } else if(line.equals("[CUSTOM DUDE SKIN FROM VALUES]")) {
                     customFromValues = new ArrayList<>();
+                    loadingNoteColors = false;
                     loadingFromValues = true;
-                    System.out.println("adding from values");
+                    //System.out.println("adding from values");
                     continue;
                 } else if(line.equals("[CUSTOM DUDE SKIN TO VALUES]")){
                     customToValues = new ArrayList<>();
                     loadingFromValues = false;
                     loadingToValues = true;
-                    System.out.println("adding to values");
+                    //System.out.println("adding to values");
                     continue;
                 }
-                if(!loadingFromValues && !loadingToValues){
+                if(!loadingFromValues && !loadingToValues && !loadingNoteColors){
                     if(split[0].equals("dude_skin")){
                         dudeSkin = DudeSkins.valueOf(split[1]);
                     } else if(!line.startsWith("[")){
@@ -86,8 +95,10 @@ public class ClientPrefs {
                     }
                     if(loadingFromValues) {
                         customFromValues.add(add);
-                    } else {
+                    } else if(loadingToValues) {
                         customToValues.add(add);
+                    } else if(loadingNoteColors) {
+                        noteColors.add(add);
                     }
                 }
             }
@@ -107,6 +118,10 @@ public class ClientPrefs {
         return Boolean.parseBoolean(settings.get("downscroll"));
     }
 
+    public static boolean getNoteDebug(){
+        return Boolean.parseBoolean(settings.get("note_debug"));
+    }
+
     public static int[] getBinds(){
         int[] binds = {Integer.parseInt(settings.get("left_bind")), Integer.parseInt(settings.get("down_bind")), Integer.parseInt(settings.get("up_bind")), Integer.parseInt(settings.get("right_bind"))};
         return binds;
@@ -117,9 +132,15 @@ public class ClientPrefs {
         for(String key : settings.keySet()){
             String add = key+":"+settings.get(key);
             sets.add(add);
-            System.out.println(add);
+            //System.out.println(add);
         }
         sets.add("dude_skin:"+dudeSkin);
+        if(noteColors != null) {
+            sets.add("[NOTE COLORS]");
+            for(ArrayList<Integer> color : noteColors) {
+                sets.add(color.get(0)+","+color.get(1)+","+color.get(2));
+            }
+        }
         if(customFromValues != null && customToValues != null) {
             sets.add("[CUSTOM DUDE SKIN FROM VALUES]");
             for(ArrayList<Integer> color : customFromValues) {

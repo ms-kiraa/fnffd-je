@@ -1,0 +1,25 @@
+{
+    "def_characters": [
+        {
+            "internal_name":"mychar",
+            "display_name":"my character!! :D",
+            "color":"FF00FF",
+            "text_sound":"snd_mycharactertalk"
+        }
+    ],
+
+    "dialogue": [
+        {
+            "character":"mychar",
+            "text":"oh my god guys this certainly is a Friday Ngiht Funkin Free Download by Tyler_mon ported to java by Kira!",
+            "image":"spr_funnycutscene_0.png",
+            "music":"mus_myawesomesongdontsteal.wav"
+        },
+        {
+            "character":"dude",
+            "text":"fuck you",
+            "image":"spr_funnycutscene_1.png",
+            "music":"mus_scarysongdontsteal"
+        }
+    ]
+}

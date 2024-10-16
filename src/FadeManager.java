@@ -24,7 +24,7 @@ public class FadeManager {
             alpha = 255;
             //fading = false;
         });
-
+        th.setName("Fade Out Thread");
         th.start();
     }
 
@@ -46,7 +46,7 @@ public class FadeManager {
             alpha = 255;
             if(closeOnComplete) System.exit(1);
         });
-
+        th.setName("Fade Out Thread");
         th.start();
     }
 
@@ -69,7 +69,7 @@ public class FadeManager {
             run.run();
             //fading = false;
         });
-
+        th.setName("Fade Out Thread");
         th.start();
     }
 
@@ -91,7 +91,7 @@ public class FadeManager {
             alpha = 0;
             fading = false;
         });
-
+        th.setName("Fade In Thread");
         th.start();
     }
 
