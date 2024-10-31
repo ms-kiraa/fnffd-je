@@ -8,14 +8,16 @@ import java.awt.event.WindowEvent;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
+import backend.managers.FadeManager;
 import backend.save.*;
+import objects.snapblocks.SnapBlockTest;
 import panels.*;
 import panels.editors.*;
 
 public class Main extends JFrame {
 
-    public final static int windowWidth = 815;
-    public final static int windowHeight = 833;
+    public final static int windowWidth = 815-14;
+    public final static int windowHeight = 833-7;
 
     public static Main main;
 
@@ -52,7 +54,7 @@ public class Main extends JFrame {
             }
         });
 
-        setPreferredSize(new Dimension(windowWidth, windowHeight));
+        setPreferredSize(new Dimension(windowWidth+14, windowHeight+7));
         setLayout(new BorderLayout());
         setResizable(false);
 
@@ -62,10 +64,11 @@ public class Main extends JFrame {
         ClientData.loadScores();
 
         if(!offset){
-            getContentPane().add(new CutsceneEditorPanel(), BorderLayout.CENTER);
+            getContentPane().add(new SplashPanel(), BorderLayout.CENTER);
         } else {
             getContentPane().add(new AnimationOffsetPanel(), BorderLayout.CENTER);
         }
+        //this.getContentPane().setSize(windowWidth, windowHeight);
 
         pack();
         
@@ -132,5 +135,16 @@ public class Main extends JFrame {
         getContentPane().add(fm, BorderLayout.CENTER);
         revalidate();
         fm.requestFocusInWindow();
+    }
+
+    public void goToCutsceneEditor(){
+        if(tmm != null) tmm=null;
+        if(tp != null) tp=null;
+        CutsceneEditorPanel cep = new CutsceneEditorPanel();
+        getContentPane().removeAll();
+        getContentPane().add(cep, BorderLayout.CENTER);
+        revalidate();
+        cep.requestFocusInWindow();
+        FadeManager.cancelFade();
     }
 }

@@ -88,18 +88,18 @@ public class Stage extends JPanel {
 
     public FXAnimatedGameObject dude;
     public String dudeChar = "dude";
-    private boolean dudeLeftRightIdleStyle = false;
+    public boolean dudeLeftRightIdleStyle = false;
 
     public AnimatedGameObject badguy;
     public String badguyChar = "strad";
-    private boolean badguyLeftRightIdleStyle = false;
+    public boolean badguyLeftRightIdleStyle = false;
 
     public FXAnimatedGameObject lady;
     public String ladyChar = "lady";
     public MultiImageGameObject speakers; // say hello to the first use of MultiImageGameObject since it was added however many months ago
     private int ladyLastBopDir = 0; // 0 = left 1 = right
     private boolean speakersChangeOnBeatHit;
-    private boolean ladyLeftRightIdleStyle = true;
+    public boolean ladyLeftRightIdleStyle = true;
 
     public int beat = -1;
     public int halfBeatInSteps = 0;
@@ -137,6 +137,10 @@ public class Stage extends JPanel {
         });
         updateTimer.start();
     });
+
+
+
+    private int countdownBeat = 3;
 
     private GameNote findHittableNoteInLane(boolean playerLane, int lane){
         // TODO: fucking better input man this shit sucks ass, do ms based or SOMETHING just dont do y pos based please
@@ -240,6 +244,8 @@ public class Stage extends JPanel {
                 }
             }
         }
+
+        if(countdownBeat >= -1) return;
         ListIterator<ArrayList<GameNote>> iter1 = curChart.listIterator();
         while (iter1.hasNext()){
             ListIterator<GameNote> iter2 = iter1.next().listIterator();
@@ -990,7 +996,27 @@ public class Stage extends JPanel {
             // i really don't know why. i really, truly don't. but this increases the framerate by like 50% and it doesn't interfere with anything else so why not
             FadeManager.fadeOut(new Color(255, 255, 255 ,255), 1, Integer.MAX_VALUE);
 
-            SoundManager.playSong(songFile.getAbsolutePath(),null);
+            Thread countdown = new Thread(()->{
+                while(countdownBeat >= -1) {
+                    switch (countdownBeat) {
+                        case 0:
+                            SoundManager.playSFX("snd/snd_go.wav");
+                            break;
+                        case -1:
+                            SoundManager.playSong(songFile.getAbsolutePath(),null);
+                        break;
+                        default:
+                            SoundManager.playSFX("snd/snd_" + countdownBeat + ".wav");
+                            break;
+                    }
+                    countdownBeat--;
+                    try {
+                        Thread.sleep(60000/(int)Conductor.bpm, (int)((60000.0/Conductor.bpm)%1)*10);
+                    } catch (Exception e) {} // this will never ever happen
+                }
+            });
+
+            countdown.start();
         });
         songLoadThread.setName("Song Load Thread");
         songLoadThread.start();

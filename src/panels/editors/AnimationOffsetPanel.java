@@ -352,11 +352,11 @@ public class AnimationOffsetPanel extends JPanel {
         toggleGhost.addActionListener((a)->{
             if(ghostDisplayed){
                 cam.removeObjectFromLayer("Background", ghost);
-                ghostDisplayed = false;
             } else {
                 cam.addObjectToLayer("Background", ghost);
-                ghostDisplayed = true;
             }
+
+            ghostDisplayed = !ghostDisplayed;
         });
         this.setLayout(null);
         toggleGhost.setBounds(600, 10, 150, 40);

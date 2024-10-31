@@ -11,7 +11,7 @@ public class FileRetriever {
     public static BufferedImage image(String imagePath) {
         File image = null;
         if(imagePath.endsWith(".png")) {
-            image = new File("./" + imagePath);
+            image = new File(imagePath);
         } else {
             image = new File("./" + imagePath + ".png");
         }

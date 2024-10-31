@@ -2,6 +2,8 @@ package backend.data.cutscene;
 
 import java.awt.image.BufferedImage;
 
+import backend.FileRetriever;
+
 public class CutsceneFrameData {
     public String text;
     public CutsceneCharacterData speaker; // who's talking
@@ -21,6 +23,10 @@ public class CutsceneFrameData {
     }
 
     public CutsceneFrameData(String text, CutsceneCharacterData speaker) {
-        this(text, speaker, null, null);
+        this(text, speaker, FileRetriever.image("img/unknownframe"), null);
+    }
+
+    public CutsceneFrameData() {
+        this(null, null);
     }
 }

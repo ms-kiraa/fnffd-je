@@ -8,3 +8,9 @@ function onCreatePre()
 
     setBackground(145,207,221)
 end
+
+function onCreate()
+    setCharacterPosition("dude", 525, 290)
+
+    setCharacterPosition("badguy", 260, 290)
+end

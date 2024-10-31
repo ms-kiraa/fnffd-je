@@ -19,11 +19,13 @@ import effects.DudeSkins;
 import main.Main;
 import notes.GameNote;
 import notes.UINote;
+import objects.AnimatedGameObject;
+import objects.fx.FXAnimatedGameObject;
 import objects.fx.FXGameObject;
 import panels.Stage;
+
 import party.iroiro.luajava.Lua;
 import party.iroiro.luajava.lua51.Lua51;
-
 import party.iroiro.luajava.value.LuaValue;
 import party.iroiro.luajava.value.LuaFunction;
 
@@ -295,6 +297,36 @@ public class FreeDownloadLua {
                     return null;
                 }
             });
+
+            // this is better than setproperty cause it adjusts their origin to be their feet rather than the top of their head
+            script.set("setCharacterPosition", new LuaFunction() {
+                @Override
+                public LuaValue[] call(Lua arg0, LuaValue[] args) {
+                    AnimatedGameObject ref = null;
+                    boolean leftRight = false;
+                    switch(args[0].toString().toLowerCase()) {
+                        case "dude":
+                            ref = Stage.instance.dude;
+                            leftRight = Stage.instance.dudeLeftRightIdleStyle;
+                            break;
+                        case "badguy":
+                            ref = Stage.instance.badguy;
+                            leftRight = Stage.instance.badguyLeftRightIdleStyle;
+                            break;
+                        // lady support coming eventually
+                    }
+
+                    int height = 0;
+                    if(leftRight) {
+                        height = ref.animations.get("idle-left").get(0).getHeight();
+                    } else {
+                        height = ref.animations.get("idle").get(0).getHeight();
+                    }
+                    ref.setPosition(args[1].toNumber(), args[2].toNumber()-height);
+                    return null;
+                }
+            });
+
             // about that!
 
             // i have never ever done reflection
@@ -317,16 +349,26 @@ public class FreeDownloadLua {
             script.set("setPropertyOfObject", new LuaFunction() {
                 @Override
                 public LuaValue[] call(Lua arg0, LuaValue[] args) {
-                    try{
-                        Field ref = Stage.class.getDeclaredField(args[0].toString());
+                    try {
+                        // Step 1: Find the field in the class hierarchy (handles inherited fields)
+                        Field ref = ReflectionUtils.getFieldFromClassHierarchy(Stage.class, args[0].toString());
                         ref.setAccessible(true);
-                        Field subref = ref.getType().getDeclaredField(args[1].toString());
+                    
+                        // Step 2: Get the object from Stage.instance
+                        Object parentObject = ref.get(Stage.instance);
+                    
+                        // Step 3: Find the sub-field in the hierarchy of the parent object
+                        Field subref = ReflectionUtils.getFieldFromClassHierarchy(parentObject.getClass(), args[1].toString());
                         subref.setAccessible(true);
-                        // get parent object?? does this work??
-                        subref.set(ref.get(Stage.instance), args[3].toJavaObject());
+                    
+                        // Step 4: Set the sub-field value
+                        subref.set(parentObject, args[2].toJavaObject());
+                    
+                        // Cleanup (optional)
                         subref.setAccessible(false);
                         ref.setAccessible(false);
-                    }catch(Exception e){
+                    
+                    } catch (NoSuchFieldException | IllegalAccessException | NullPointerException e) {
                         e.printStackTrace();
                     }
                     return null;

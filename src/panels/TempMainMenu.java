@@ -25,7 +25,7 @@ import main.Main;
 
 public class TempMainMenu extends MusicBeatPanel {
     private int curSelected = 0;
-    private String[] options = {"play", "freeplay menu", "open options"};
+    private String[] options = {"play", "freeplay menu", "open options", "cutscene editor"};
     private boolean selected = false;
 
     public TempMainMenu(){super();}
@@ -117,6 +117,9 @@ public class TempMainMenu extends MusicBeatPanel {
                                     break;
                                 case "open options":
                                     Main.main.goToOptionsPanel();
+                                    break;
+                                case "cutscene editor":
+                                    Main.main.goToCutsceneEditor();
                                     break;
                             }
                         });

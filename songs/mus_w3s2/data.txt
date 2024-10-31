@@ -1,0 +1,6 @@
+name:tsunami
+dude-char:dude
+badguy-char:buddy
+lady-char:lady
+stage:backyard
+noteskin:default
