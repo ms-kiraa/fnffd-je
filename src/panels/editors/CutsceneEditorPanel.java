@@ -38,7 +38,7 @@ public class CutsceneEditorPanel extends MusicBeatPanel {
     public CutsceneEditorPanel(){super();}
 
     private int curFrame = 0;
-    private ArrayList<CutsceneFrameData> frames;
+    private ArrayList<CutsceneFrameData> frames = new ArrayList<>();
     private Map<String, CutsceneCharacterData> chars = new HashMap<>();
 
     private JButton openConfig;
@@ -87,13 +87,18 @@ public class CutsceneEditorPanel extends MusicBeatPanel {
         field.setFont(new Font("Comic Sans MS", Font.BOLD, 15));
         field.setBorder(BorderFactory.createEmptyBorder());
 
+        field.setFocusable(false);
+        field.addActionListener((a)->{
+            System.out.println("aciton");
+        });
+
         add(field);
     }
     @Override
     protected void create(){
         ig = FileRetriever.image("songs/mus_tutorial/dialogue/spr_w0s1dialog1_11");
         textBox = FileRetriever.image("img/ui/spr_textbox_0");
-        
+
         frames = new ArrayList<>();
         frames.add(new CutsceneFrameData());
 
@@ -193,6 +198,8 @@ public class CutsceneEditorPanel extends MusicBeatPanel {
         g2.setColor(Color.BLACK);
 
         // draw box
+        g2.drawImage(textBox, Main.windowWidth/2-textBox.getWidth()/2, Main.windowHeight-textBox.getHeight()-20*3, null);
+
         int textboxX = Main.windowWidth/2-textBox.getWidth()/2;
         int textboxY = Main.windowHeight-textBox.getHeight()-20*3;
         g2.drawImage(textBox, textboxX, textboxY, null);

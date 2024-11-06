@@ -16,6 +16,8 @@ public class GameNote extends Note {
     public boolean autohit = false;
     public boolean hit = false;
 
+    public double timeMS = -1;
+
     private boolean debug = ClientPrefs.getBoolean("note_debug");
 
     public GameNote(double x, double y, Direction direction, Camera camera, boolean fump, boolean playerNote, NoteType type){
@@ -173,7 +175,7 @@ public class GameNote extends Note {
 
     public void move(double amt){
         double newY = yy - amt;
-        if(newY <= 800){
+        if(newY <= 800 && newY >= 0-image.getHeight()*5){
             y = newY;
         }
     }

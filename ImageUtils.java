@@ -9,6 +9,8 @@ import java.util.Arrays;
 public class ImageUtils {
     private ImageUtils(){}
 
+    // public methods
+
     public static BufferedImage colorMultiply(BufferedImage input, Color color){
         int[] rgb = {color.getRed(), color.getGreen(), color.getBlue()};
         return colorMultiply(input, rgb);

@@ -7,15 +7,6 @@ public class Conductor {
     public static double bpm = 60.0;
     // idk what rate is so im skipping it
 
-    public static double crochet;
-    public static double crochetSec;
-
-    public static double beatDb;
-    public static int beat;
-
-    public static double stepDb;
-    public static int step;
-
     public static Conductor instance;
 
     public Conductor(){

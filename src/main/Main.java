@@ -3,11 +3,18 @@ package main;
 import javax.swing.*;
 
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Map;
 
+import backend.FrontUI;
+import backend.MusicBeatPanel;
 import backend.managers.FadeManager;
 import backend.save.*;
 import objects.snapblocks.SnapBlockTest;
@@ -21,6 +28,8 @@ public class Main extends JFrame {
 
     public static Main main;
 
+    public boolean debugUIEnabled = false;
+
     // this is probably a bad idea but meh
     public static RecordScratchScreen rss;
     public static TempMainMenu tmm;
@@ -31,6 +40,8 @@ public class Main extends JFrame {
 
     public static final int targetFPS = 9999;
     public static final int TICK_TIME = 17;
+
+    public Map<String, String> panelSpecificDebugInfo = new HashMap<>();
 
     public Main(String title){
         super(title);
@@ -47,13 +58,13 @@ public class Main extends JFrame {
             @Override
             public void windowClosing(WindowEvent e) {
                 ClientPrefs.saveAllSets();
-                ClientData.saveScores();
+                ClientData.saveAllScores();
                 setVisible(false);
                 dispose();
                 System.exit(0);
             }
         });
-
+        getGlassPane().setVisible(true);
         setPreferredSize(new Dimension(windowWidth+14, windowHeight+7));
         setLayout(new BorderLayout());
         setResizable(false);
@@ -63,13 +74,14 @@ public class Main extends JFrame {
         // initialize scores
         ClientData.loadScores();
 
+        setGlassPane(new FrontUI());
+        
         if(!offset){
             getContentPane().add(new SplashPanel(), BorderLayout.CENTER);
         } else {
             getContentPane().add(new AnimationOffsetPanel(), BorderLayout.CENTER);
         }
         //this.getContentPane().setSize(windowWidth, windowHeight);
-
         pack();
         
         setLocationRelativeTo(null);
@@ -79,11 +91,13 @@ public class Main extends JFrame {
     // panel switching methods
 
     public void goToStage(){
+        nullPanel(fm);
         s = new Stage();
         getContentPane().removeAll();
         getContentPane().add(s, BorderLayout.CENTER);
         revalidate();
         s.requestFocusInWindow();
+        postSwitch(s);
     }
 
     public void goToRecordScratch(){
@@ -92,6 +106,7 @@ public class Main extends JFrame {
         getContentPane().add(rss, BorderLayout.CENTER);
         revalidate();
         rss.requestFocusInWindow();
+        postSwitch(rss);
     }
 
     public void goToTitlePanel(){
@@ -100,51 +115,79 @@ public class Main extends JFrame {
         getContentPane().add(tp, BorderLayout.CENTER);
         revalidate();
         tp.requestFocusInWindow();
+        postSwitch(tp);
     }
 
 
     public void goToMainMenuPanel(){
-        if(s != null) s=null;
-        if(tp != null) {
-            tp.redraw.stop();
-            tp=null;
-        }
-        if(tom!=null) tom=null;
         tmm = new TempMainMenu();
         getContentPane().removeAll();
         getContentPane().add(tmm, BorderLayout.CENTER);
         revalidate();
         tmm.requestFocusInWindow();
+        postSwitch(tmm);
+        if(s != null) s=null;
+        nullPanel(tp);
+        nullPanel(tom);
     }
 
     public void goToOptionsPanel(){
-        if(tmm != null) tmm=null;
-        if(tp != null) tp=null;
         tom = new TempOptionsMenu();
         getContentPane().removeAll();
         getContentPane().add(tom, BorderLayout.CENTER);
         revalidate();
         tom.requestFocusInWindow();
+        postSwitch(tom);
+        nullPanel(tmm);
+        nullPanel(tp);
     }
 
     public void goToFreeplay(){
-        if(tmm != null) tmm=null;
-        if(tp != null) tp=null;
         fm = new FreeplayPanel();
         getContentPane().removeAll();
         getContentPane().add(fm, BorderLayout.CENTER);
         revalidate();
         fm.requestFocusInWindow();
+        postSwitch(fm);
+        nullPanel(tmm);
+        nullPanel(tp);
     }
 
     public void goToCutsceneEditor(){
-        if(tmm != null) tmm=null;
-        if(tp != null) tp=null;
         CutsceneEditorPanel cep = new CutsceneEditorPanel();
         getContentPane().removeAll();
         getContentPane().add(cep, BorderLayout.CENTER);
         revalidate();
         cep.requestFocusInWindow();
         FadeManager.cancelFade();
+        postSwitch(cep);
+        nullPanel(tmm);
+        nullPanel(tp);
+    }
+
+
+
+    // does stuff to a panel after it is added
+    private void postSwitch(JPanel p) {
+        p.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_F7, 0), "DEBUG_TOGGLE");
+        p.getActionMap().put("DEBUG_TOGGLE", new AbstractAction() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                System.out.println("hi");
+                debugUIEnabled = !debugUIEnabled;
+            }
+            
+        });
+        System.out.println("added bnd!!!");
+        panelSpecificDebugInfo.clear();
+    }
+
+    // does stuff to make a panel stop running
+    private void nullPanel(MusicBeatPanel p) {
+        if(p != null) {
+            p.redraw.stop();
+            p = null;
+        }
     }
 }

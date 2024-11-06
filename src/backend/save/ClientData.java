@@ -60,7 +60,7 @@ public class ClientData {
         return scores.get(songName);
     }
 
-    public static void saveScores(){
+    public static void saveAllScores(){
         ArrayList<String> toSave = new ArrayList<>();
         for(String key : scores.keySet()) {
             String add = key+":"+scores.get(key)[0]+"|"+scores.get(key)[1];

@@ -8,9 +8,9 @@ public class CutsceneCharacterData {
     public String dialogueSound; // what to play every text blip, or null if none
 
     // default speakers
-    public static CutsceneCharacterData dude = new CutsceneCharacterData("Dude"); // fill out more nuanced info later when i have the game in front of me
-    public static CutsceneCharacterData lady = new CutsceneCharacterData("Lady");
-    public static CutsceneCharacterData strad = new CutsceneCharacterData("Strad");
+    public static final CutsceneCharacterData DUDE = new CutsceneCharacterData("Dude"); // fill out more nuanced info later when i have the game in front of me
+    public static final CutsceneCharacterData LADY = new CutsceneCharacterData("Lady");
+    public static final CutsceneCharacterData STRAD = new CutsceneCharacterData("Strad");
 
     public CutsceneCharacterData(String name, Color color, String dialogueSound) {
         this.name = name;

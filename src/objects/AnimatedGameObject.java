@@ -19,6 +19,8 @@ public class AnimatedGameObject extends GameObject {
      * Time between each "tick" of animation
      */
     public int frameTimeMS = 120;
+    public int curFrame = 0;
+    public String curAnim = "";
     Thread animationThread;
 
     double xx, yy;
@@ -70,20 +72,21 @@ public class AnimatedGameObject extends GameObject {
         yy = y;
     }
 
-    public void playAnimation(String animation){
+    public void playAnimation(String animation, int startFrame){
         if(animationThread != null) animationThread.interrupt();
         animationThread = new Thread(()->{
-            int i = 0;
+            curFrame = startFrame;
+            curAnim = animation;
             ArrayList<BufferedImage> anim = animations.get(animation);
             if(offsets.containsKey(animation)) {
                 int[] set = offsets.get(animation);
                 x = xx + set[0];
                 y = yy + set[1];
             }
-            while(i < anim.size()){
-                this.image = anim.get(i);
+            while(curFrame < anim.size()){
+                this.image = anim.get(curFrame);
                 //System.out.println("showing frame " + i);
-                i++;
+                curFrame++;
                 try{
                     Thread.sleep(frameTimeMS);
                 } catch (Exception e){
@@ -91,9 +94,14 @@ public class AnimatedGameObject extends GameObject {
                     break;
                 }
             }
+
         });
         animationThread.setName("Animation "+animation+" Thread");
         animationThread.start();
+    }
+
+    public void playAnimation(String animation){
+        playAnimation(animation, 0);
     }
 
 }

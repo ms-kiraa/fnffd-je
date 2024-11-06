@@ -39,6 +39,7 @@ public class FreeplayPanel extends MusicBeatPanel {
     double textMod = 0;
     int targ = 0;
     int targTextMod = 0;
+
     int curSel = 0;
 
     int textInc = (int)(51*1.7);
@@ -92,7 +93,7 @@ public class FreeplayPanel extends MusicBeatPanel {
             @Override
             public void actionPerformed(ActionEvent e) {
                 if(curSel-1<0) return;
-                targ += Main.windowHeight/2;
+                targ += 800/2;
                 targTextMod += textInc;
                 bgTarg += bgInc;
                 curSel--;
@@ -107,7 +108,7 @@ public class FreeplayPanel extends MusicBeatPanel {
             @Override
             public void actionPerformed(ActionEvent e) {
                 if(curSel+1>=songs.length) return;
-                targ -= Main.windowHeight/2;
+                targ -= 800/2;
                 targTextMod -= textInc;
                 bgTarg -= bgInc;
                 curSel++;
@@ -220,8 +221,12 @@ public class FreeplayPanel extends MusicBeatPanel {
             bg = ImageUtils.colorMultiply(bgBase, getRainbowAlongRange());
         }
         curH = lerpf(curH, targH, 0.2f);
+        if(Math.abs(curH-targH) < 0.001) curH = targH;
         mod = lerp(mod, targ, 0.2);
         bgMod = lerp(bgMod, bgTarg, 0.2);
+
+        Main.main.panelSpecificDebugInfo.put("song internal name", songs[curSel].fileName);
+        Main.main.panelSpecificDebugInfo.put("rainbow", Float.toString(curH));
     }
 
     private void drawOutlinedText(Graphics g, String str, int x, int y, int thickness) {

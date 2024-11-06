@@ -1,13 +1,16 @@
 package panels;
 
+import java.awt.AlphaComposite;
 import java.awt.BasicStroke;
 import java.awt.Color;
+import java.awt.Composite;
 import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.util.ArrayList;
@@ -70,6 +73,9 @@ public class Stage extends JPanel {
     private double songbeat;
     private double songpos;
 
+    private Map<String, BufferedImage> ratingCache = new HashMap<>();  
+    private ArrayList<Rating> activeRatings = new ArrayList<>();
+
     private long lastTickMillis = System.currentTimeMillis();
 
     public static ArrayList<String> songPlaylist = new ArrayList<>();
@@ -115,6 +121,12 @@ public class Stage extends JPanel {
 
     public int currentFPS;
 
+    private boolean paused = false;
+    private BufferedImage pauseViewport = null;
+    private String[] pausedOnAnims = {};
+    private int[] pausedOnFrames = {};
+    private long pauseTime = 0;
+
     public Map<String, FXGameObject> stageObjects = new HashMap<>();
     public Map<String, String> objectLayers = new HashMap<>(); // this is probably a bad way to do it
 
@@ -127,7 +139,7 @@ public class Stage extends JPanel {
 
             @Override
             public void actionPerformed(ActionEvent e) {
-                if(!loading) update();
+                if(!loading && !paused) update();
                 repaint();
                 long elapsed = System.currentTimeMillis() - lastTickMillis; // probably will be used eventually
                 currentFPS = 1000 / (int)elapsed;
@@ -141,26 +153,70 @@ public class Stage extends JPanel {
 
 
     private int countdownBeat = 3;
+    private BufferedImage countdownDisplay = null;
+    private float countdownAlpha = 1;
 
     private GameNote findHittableNoteInLane(boolean playerLane, int lane){
-        // TODO: fucking better input man this shit sucks ass, do ms based or SOMETHING just dont do y pos based please
         //System.out.println(lane + (playerLane ? 4 : 0));
         ArrayList<GameNote> laneList = curChart.get(lane + (playerLane ? 4 : 0));
         UINote ui = uiNotes.get(playerLane ? "Player" : "BadGuy").get(lane%4);
-        int range = 40;
+        int range = 120;
 
         for(GameNote note : laneList) {
-            if((note.y+note.image.getHeight()/2) >= ui.y - range && note.y <= ui.y + range && !note.autohit && !note.hit){
+            if(note.autohit || note.hit) continue;
+            double ms = note.timeMS;
+            double time = Conductor.getTime()*1000.0;
+            // TODO: adjust it somehow so it lines up with the strumbar y because it apparently judges from y=0. when ms is 0 y is also 0.
+            if(ms >= time - range && ms <= time + range){
+                double diff = Math.abs(ms-time);
+                System.out.println("visual distance (pixels): " + Math.abs(note.y-ui.y) + " | time difference (ms): " + diff + " | rating: " + makeRating(diff));
+
+                /*System.out.println(
+                    "----------------FOUND A NOTE!----------------"+
+                    "\n"+
+                    "\ndist from strumbar: " + Math.abs(note.y-(ui.y+(!downscroll ? 0 : ui.image.getHeight()))) + 
+                    "\n"+
+                    "\nms: "+ms+
+                    "\ntime: "+time+
+                    "\n\ndifference of " + diff +" ms!!!");*/
                 return note;
             }
         }
         return null;
     }
 
+    private String makeRating(double diff) {
+        Rating rating = null;
+        String ratingName = null;
+        if(diff <= 30) ratingName = "yeah";
+        else if (diff <= 60) ratingName = "nice";
+        else if (diff <= 90) ratingName = "eh";
+        else ratingName = "crap";
+
+        Main.main.panelSpecificDebugInfo.put(ratingName+"s", Integer.toString(Integer.parseInt(Main.main.panelSpecificDebugInfo.getOrDefault(ratingName+"s", "0"))+1));
+
+        String filePath = "img/ui/ratings/" + ratingName + ".png";
+
+        BufferedImage rateImg = ratingCache.get(ratingName);
+        if(rateImg == null) {
+            rateImg = FileRetriever.image(filePath);
+            ratingCache.put(ratingName, rateImg);
+        }
+        rating = new Rating((speakers.x+speakers.image.getWidth()/2)-rateImg.getWidth()/2, speakers.y-rateImg.getHeight()/2, rateImg, cam);
+        rating.scale = 0.5;
+        rating.xvel = (Math.random()*2)-1;
+        rating.yvel = (Math.random()*-3)-1;
+
+        cam.addObjectToLayer("Objects", rating);
+        activeRatings.add(rating);
+
+        return ratingName;
+    }
+
     // find what event to execute and do it
     private void doEvent(){
         //System.out.println("executing event " + event);
-        
+        //System.out.println("dats an event note right htere. " + event);
         luaInstance.fireLuaFunction("event", event);
         event++;
     }
@@ -177,14 +233,6 @@ public class Stage extends JPanel {
     }
 
     private void update(){
-        //System.out.println("Oughh");
-        /*if(keysPressed[0]) cam.moveCameraX(-1);
-        if(keysPressed[1]) cam.moveCameraY(1);
-        if(keysPressed[2]) cam.moveCameraY(-1);
-        if(keysPressed[3]) cam.moveCameraX(1);
-        System.out.println(cam.x + " " + cam.y);
-        //*/
-
         luaInstance.fireLuaFunction("onUpdatePre");
         // move camera
         double camMoveSpd = 0.03;
@@ -192,8 +240,9 @@ public class Stage extends JPanel {
         songpos = (SoundManager.songClip.getMicrosecondPosition() / 1000000.0);
         double songProgress = songpos / songlong;
         Conductor.setTime(songpos);
-        //System.out.println(Conductor.getCrochetSec());
         double ymod = ((uiNotesYPos+songProgress * songbeat)*downscrollYMod);
+
+        double curTimeMS = Conductor.getTime()*1000.0;
 
         //System.out.println(Conductor.getBeat());
 
@@ -246,19 +295,35 @@ public class Stage extends JPanel {
         }
 
         if(countdownBeat >= -1) return;
+
+        // loop thru ratings and update (and remove) them
+        ArrayList<Rating> ratingsToRemove = new ArrayList<>();
+        for(Rating rating : activeRatings) {
+            rating.update();
+            if(!rating.active) {
+                ratingsToRemove.add(rating);
+                rating.visible = false;
+                continue;
+            }
+        }
+        for(Rating rating : ratingsToRemove) {
+            activeRatings.remove(rating);
+        }
+        ratingsToRemove.clear();
+
         ListIterator<ArrayList<GameNote>> iter1 = curChart.listIterator();
         while (iter1.hasNext()){
             ListIterator<GameNote> iter2 = iter1.next().listIterator();
             while(iter2.hasNext()){
                 GameNote gn = iter2.next();
                 gn.move(ymod);
-                if(!(gn.y >= 0-gn.image.getHeight() && gn.y <= 800+gn.image.getHeight())) continue;
-                boolean missCondition = (downscroll) ? (gn.y >= (500+gn.image.getHeight())) : (gn.y < 0-gn.image.getHeight());
+                if(!(gn.y >= 0-gn.image.getHeight()*2 && gn.y <= 800+gn.image.getHeight())) continue;
+                boolean missCondition = (downscroll && gn.y >= 500+gn.image.getHeight()) || (!downscroll && gn.y < 0-gn.image.getHeight());
                 if(missCondition) {
                     removeNote(gn);
                     iter2.remove();
                     if(!gn.hit && !gn.autohit) {
-                        System.out.println("possible miss? how will the economy recover");
+                        //System.out.println("possible miss? how will the economy recover");
                         score -= 50;
                         misses++;
                     }
@@ -266,7 +331,6 @@ public class Stage extends JPanel {
                 }
 
                 if(gn.autohit){
-                    //if(Math.round(Math.random()*5) == 2) Main.s = new Stage();
                     boolean autohitCondition = (downscroll) ? (gn.y >= uiNotesYPos) : (gn.y <= uiNotesYPos);
                     if(autohitCondition && !gn.hit) {
                         gn.hit = true;
@@ -324,7 +388,6 @@ public class Stage extends JPanel {
                                 endSongThread.start();
                                 break;
                             case EVENT:
-                                System.out.println("dats an event note right htere. " + event);
                                 doEvent();
                                 break;
                             case DUDE_CAM:
@@ -349,25 +412,31 @@ public class Stage extends JPanel {
                 }
 
                 if(gn.playerNote){
-                    // handle player note stuff
-                    // this line is so big it might as well have its own variable
-                    boolean downscrollHoldHitCondition = ((gn.y+gn.image.getHeight()) >= (uiNotes.get("Player").get(gn.dir.getDirectionAsInt()).y+uiNotes.get("Player").get(gn.dir.getDirectionAsInt()).image.getHeight()));
-                    boolean holdHitCondition = (downscroll) ? downscrollHoldHitCondition : (gn.y <= uiNotes.get("Player").get(gn.dir.getDirectionAsInt()).y);
-                    if(
-                        (gn.isHold()) &&
-                        keysPressed[gn.dir.getDirectionAsInt()] &&
-                        holdHitCondition &&
-                        !gn.autohit
-                    ){
-                        playDudeAnim(gn);
-                        removeNote(gn);
-                        score += 25;
-                        iter2.remove();
-                        continue;
-                    }
+                    if(ClientPrefs.getBoolean("botplay")) {
 
-                    if(gn.autohit && gn.y <= uiNotes.get("Player").get(gn.dir.getDirectionAsInt()).y){
-
+                        if(
+                            (gn.isHold()) &&
+                            keysPressed[gn.dir.getDirectionAsInt()] &&
+                            Math.abs(gn.timeMS-curTimeMS) < 10 &&
+                            !gn.autohit
+                        ){
+                            playDudeAnim(gn);
+                            removeNote(gn);
+                            score += 25;
+                            iter2.remove();
+                            continue;
+                        }
+                    } else {
+                        if(gn.timeMS-curTimeMS < 5 && !gn.autohit) {
+                            if(!gn.isHold()) {
+                                findHittableNoteInLane(true, gn.dir.getDirectionAsInt());
+                                uiNotes.get("Player").get(gn.dir.getDirectionAsInt()).visPress();
+                            }
+                            playDudeAnim(gn);
+                            removeNote(gn);
+                            iter2.remove();
+                            continue;
+                        }
                     }
                 } else {
                     boolean badguyDownscrollHoldHitCondition = ((gn.y+gn.image.getHeight()) >= (uiNotes.get("BadGuy").get(gn.dir.getDirectionAsInt()).y+uiNotes.get("BadGuy").get(gn.dir.getDirectionAsInt()).image.getHeight()));
@@ -384,6 +453,7 @@ public class Stage extends JPanel {
             }
 
         }
+        Main.main.panelSpecificDebugInfo.put("event", Integer.toString(event));
         luaInstance.fireLuaFunction("onUpdate");
     }
 
@@ -912,6 +982,61 @@ public class Stage extends JPanel {
 
             }
         );
+
+        this.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0,false),
+                "pause");
+            this.getActionMap().put("pause",
+            new AbstractAction() {
+
+				@Override
+				public void actionPerformed(ActionEvent e) {
+                    if(!paused) pause();
+                    else unpause();
+				}
+
+            }
+        );
+    }
+
+    private void pause(){
+        paused = true;
+        pauseTime = SoundManager.songClip.getMicrosecondPosition();
+        SoundManager.songClip.stop();
+        pauseViewport = new BufferedImage(800, 800, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D pauseG2 = pauseViewport.createGraphics();
+
+        AnimatedGameObject[] chars = {badguy, dude};
+
+        pausedOnAnims = new String[chars.length];
+        pausedOnFrames = new int[chars.length];
+
+
+        for(int i = 0; i < chars.length; i++) {
+            AnimatedGameObject character = chars[i];
+            pausedOnAnims[i] = character.curAnim;
+            pausedOnFrames[i] = character.curFrame;
+            System.out.println(character.curAnim + "\n" + character.curFrame);
+            character.playAnimation("ayy");
+        }
+
+        cam.drawViewport(pauseG2);
+        pauseG2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.5f));
+        pauseG2.setColor(Color.BLACK);
+        pauseG2.fillRect(0, 0, 800, 800);
+        pauseG2.dispose();
+    }
+
+    private void unpause(){
+        paused = false;
+        SoundManager.songClip.start();
+        SoundManager.songClip.setMicrosecondPosition(pauseTime);
+        pauseViewport = null;
+
+        AnimatedGameObject[] chars = {badguy, dude};
+        for(int i = 0; i < chars.length; i++) {
+            AnimatedGameObject character = chars[i];
+            character.playAnimation(pausedOnAnims[i], pausedOnFrames[i]);
+        }
     }
 
     // very very barebones! this is all just for testing tho
@@ -998,18 +1123,38 @@ public class Stage extends JPanel {
 
             Thread countdown = new Thread(()->{
                 while(countdownBeat >= -1) {
+                    while(paused){}
                     switch (countdownBeat) {
                         case 0:
                             SoundManager.playSFX("snd/snd_go.wav");
+                            countdownDisplay = FileRetriever.image("img/ui/go.png");
+                            countdownAlpha = 1f;
                             break;
                         case -1:
                             SoundManager.playSong(songFile.getAbsolutePath(),null);
                         break;
                         default:
+                            countdownDisplay = FileRetriever.image("img/ui/"+countdownBeat+".png");
+                            countdownAlpha = 1f;
                             SoundManager.playSFX("snd/snd_" + countdownBeat + ".wav");
                             break;
                     }
+
+                    if(countdownBeat != -1) {
+                        if(ladyLeftRightIdleStyle) {
+                            if(ladyLastBopDir == 0) {
+                                lady.playAnimation("idle-right");
+                            } else {
+                                lady.playAnimation("idle-left");
+                            }
+                            ladyLastBopDir=(ladyLastBopDir+1)%2;
+                        } else {
+                            lady.playAnimation("idle");
+                        }
+                    }
+
                     countdownBeat--;
+                    
                     try {
                         Thread.sleep(60000/(int)Conductor.bpm, (int)((60000.0/Conductor.bpm)%1)*10);
                     } catch (Exception e) {} // this will never ever happen
@@ -1122,6 +1267,7 @@ public class Stage extends JPanel {
                     )
                 ));
             }
+            
             for(int bb = 0; bb < 8; bb++){
                 ret.add(new ArrayList<>());
                 curChartTypes.add(new ArrayList<>());
@@ -1137,14 +1283,18 @@ public class Stage extends JPanel {
                 uiNotes.get((bb < 4) ? "BadGuy" : "Player").put(bb%4, uin);
 
                 // FUCKING NOTES BABYYYYY
+                double ms = 0;
+                ms += -(Conductor.getCrochetSec()/4)*1000.0;
                 for(int b = 0; b < songlong; b++){
                     int line = scan.nextInt();
                     curChartTypes.get(bb).add(line);
                     //System.out.println(curChartTypes.get(bb).get(b));
+                    double thisMS = ms;
+                    ms += (Conductor.getCrochetSec()/4)*1000.0;
                     if(line != 0){
                         GameNote gn = new GameNote(myx,(48+(b*48*scrollSpeed*dosc)), bb%4, cam, (songName.equals("mus_frostbytep2") && bb < 4), bb >= 4, curChartTypes.get(bb).get(b));
-                        if(ClientPrefs.getBoolean("note_debug")) gn.drawHitbox = true;
                         gn.addEffect(colors.get(bb%4));
+                        gn.timeMS = thisMS;
                         if(gn.isHold()) cam.addObjectToLayer("UI hold", gn);
                         else cam.addObjectToLayer("UI", gn);
                         ret.get(bb).addLast(gn);
@@ -1187,7 +1337,12 @@ public class Stage extends JPanel {
             cam.drawViewport(vp.createGraphics());
             //vp = ImageUtils.colorMultiply(vp, Color.GREEN);
             // ImageUtils.colorMultiply(vp, new Color(239, 0, 119))
-            g.drawImage(vp, 0, 0, null);
+            if(!paused) {
+                g.drawImage(vp, 0, 0, null);
+            } else {
+                g.drawImage(pauseViewport, 0, 0, null);
+                g.drawString("press q to quit", 400, 400);
+            }
             for(String key : stageImages.keySet()) {
                 BufferedImage bi = stageImages.get(key);
                 try{
@@ -1197,6 +1352,16 @@ public class Stage extends JPanel {
                     System.exit(1);
                 }
             }
+
+            if(countdownAlpha > 0) {
+                Composite prev = g2.getComposite();
+                AlphaComposite ac = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, countdownAlpha);
+                g2.setComposite(ac);
+                g2.drawImage(countdownDisplay, Main.windowWidth/2-countdownDisplay.getWidth()*2, Main.windowHeight/2-countdownDisplay.getHeight()*2, countdownDisplay.getWidth()*4, countdownDisplay.getHeight()*4, null);
+                g2.setComposite(prev);
+                countdownAlpha -= 0.05f;
+            }
+
             if(FadeManager.fading) {
                 FadeManager.drawSelf(g2);
             }

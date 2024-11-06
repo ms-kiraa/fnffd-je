@@ -27,6 +27,6 @@ public class CutsceneFrameData {
     }
 
     public CutsceneFrameData() {
-        this(null, null);
+        this("placeholder", CutsceneCharacterData.DUDE);
     }
 }

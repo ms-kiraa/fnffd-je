@@ -29,7 +29,7 @@ public class GradientTextFactory {
         g2d.setFont(font);
         g2d.setPaint(gradient);
 
-        g2d.drawString(text, 0, textHeight-textHeight/10);
+        g2d.drawString(text, 0, textHeight/2+textHeight/3);
 
         g2d.dispose();
 

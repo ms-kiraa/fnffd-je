@@ -21,12 +21,12 @@ public class GradientTextTestPanel extends MusicBeatPanel {
          *     var shit=make_colour_hsv((225/weeks+1)*i,219,188)
          *     var shit2=make_colour_hsv((225/weeks+1)*i+5,235,120)
          */
-        maxWeeks = 4;
+        maxWeeks = Integer.MAX_VALUE/100;
         Font fnt = new Font("Comic Sans MS", Font.PLAIN, 36);
         texts = new BufferedImage[maxWeeks+1];
         for(int i = 0; i <= maxWeeks; i++) {
-            Color c1 = Color.getHSBColor(((225/maxWeeks)*i)/255f, 219/255f, 188/255f);
-            Color c2 = Color.getHSBColor(((225/maxWeeks)*i+5)/255f, 235/255f, 120/255f);
+            Color c1 = Color.getHSBColor(((225/maxWeeks+1)*i)/255f, 219/255f, 188/255f);
+            Color c2 = Color.getHSBColor(((225/maxWeeks+1)*i+5)/255f, 235/255f, 120/255f);
             texts[i] = GradientTextFactory.makeGradientText(((i == 0) ? "TUTORIAL" : "WEEKND " + i), fnt, c1, c2);
         }
 
