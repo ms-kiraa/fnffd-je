@@ -1,9 +1,9 @@
 package backend;
 
 public class Conductor {
-    public static double lastTime = 0;
+    private static double lastTime = 0;
 
-    public static double time = 0;
+    private static double time = 0;
     public static double bpm = 60.0;
     // idk what rate is so im skipping it
 

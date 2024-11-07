@@ -16,13 +16,12 @@ public class Rating extends GameObject {
     public double yvel = 0;
 
     private boolean bumped = false;
-    private double growRate = 0.025*200;
+    private double growRate = 0.025;
 
     public boolean active = true;
 
     public Rating(double x, double y, BufferedImage img, Camera cam) {
         super(x, y, 0.5, img, cam);
-        SoundManager.playSFX("snd/fnaf.wav");
     }
 
     @Override
@@ -32,7 +31,7 @@ public class Rating extends GameObject {
         x += xvel;
 
         scale += growRate;
-        if(scale > 0.7*1000) bumped = true;
+        if(scale > 0.7) bumped = true;
         if(bumped && growRate > -0.025) {
             growRate -= 0.005;
         }

@@ -15,6 +15,7 @@ import java.util.Map;
 
 import backend.FrontUI;
 import backend.MusicBeatPanel;
+import backend.imagemanip.Bar;
 import backend.managers.FadeManager;
 import backend.save.*;
 import objects.snapblocks.SnapBlockTest;

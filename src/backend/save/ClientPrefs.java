@@ -110,6 +110,8 @@ public class ClientPrefs {
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+        //settings.put("botplay", "true");
     }
 
     public static String set(String setting, Object value){
@@ -119,7 +121,7 @@ public class ClientPrefs {
     }
 
     public static boolean getBoolean(String setting){
-        return Boolean.parseBoolean(settings.get(setting));
+        return Boolean.parseBoolean(settings.getOrDefault(setting, "false"));
     }
 
     public static int[] getBinds(){

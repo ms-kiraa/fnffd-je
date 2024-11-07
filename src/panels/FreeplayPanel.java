@@ -28,6 +28,7 @@ import backend.data.SongData;
 import backend.save.ClientData;
 import backend.imagemanip.ImageUtils;
 import backend.managers.*;
+import static backend.TextUtils.drawOutlinedText;
 import main.Main;
 
 public class FreeplayPanel extends MusicBeatPanel {
@@ -227,24 +228,6 @@ public class FreeplayPanel extends MusicBeatPanel {
 
         Main.main.panelSpecificDebugInfo.put("song internal name", songs[curSel].fileName);
         Main.main.panelSpecificDebugInfo.put("rainbow", Float.toString(curH));
-    }
-
-    private void drawOutlinedText(Graphics g, String str, int x, int y, int thickness) {
-        Color originalColor = g.getColor();
-        g.setColor(Color.BLACK);
-    
-        // Draw the outline around the text by spreading the text horizontally and vertically
-        for (int i = -thickness; i <= thickness+1; i++) {
-            for (int j = -thickness; j <= thickness+2; j++) {
-                if (i != 0 || j != 0) {  // Ensure that we don't draw the text at (0, 0), which would overlap the main text
-                    g.drawString(str, x + i, y + j);
-                }
-            }
-        }
-    
-        // Restore the original color and draw the main text
-        g.setColor(originalColor);
-        g.drawString(str, x, y);
     }
 
     @Override

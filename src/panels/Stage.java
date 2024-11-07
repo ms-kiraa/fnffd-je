@@ -33,6 +33,7 @@ import backend.Conductor;
 import backend.FreeDownloadLua;
 import backend.FileRetriever;
 import backend.data.SongData;
+import backend.imagemanip.Bar;
 import backend.managers.*;
 import backend.save.ClientData;
 import backend.save.ClientPrefs;
@@ -72,6 +73,12 @@ public class Stage extends JPanel {
     private double songlong;
     private double songbeat;
     private double songpos;
+
+    // song time calculation
+    private double songDuration;
+    private double songPosition;
+    private double songProgress;
+    private Bar timeBar = new Bar(Color.BLACK, Color.WHITE, 300, 25, 5, true, 0.5f, 5, 5).setFillMode(Bar.PUSH_FILL_IN);
 
     private Map<String, BufferedImage> ratingCache = new HashMap<>();  
     private ArrayList<Rating> activeRatings = new ArrayList<>();
@@ -160,16 +167,17 @@ public class Stage extends JPanel {
         //System.out.println(lane + (playerLane ? 4 : 0));
         ArrayList<GameNote> laneList = curChart.get(lane + (playerLane ? 4 : 0));
         UINote ui = uiNotes.get(playerLane ? "Player" : "BadGuy").get(lane%4);
-        int range = 120;
+        int range = 140;
 
         for(GameNote note : laneList) {
             if(note.autohit || note.hit) continue;
             double ms = note.timeMS;
             double time = Conductor.getTime()*1000.0;
-            // TODO: adjust it somehow so it lines up with the strumbar y because it apparently judges from y=0. when ms is 0 y is also 0.
+            // TODO: DOWNSCROLL IS BROKEN LMAOOOO IM GONNA SHOOT MYSELF WITH A SAWED OFF SHOTGUN
             if(ms >= time - range && ms <= time + range){
                 double diff = Math.abs(ms-time);
-                System.out.println("visual distance (pixels): " + Math.abs(note.y-ui.y) + " | time difference (ms): " + diff + " | rating: " + makeRating(diff));
+                String rating = makeRating(diff);
+                //System.out.println("visual distance (pixels): " + Math.abs(note.y-ui.y) + " | time difference (ms): " + diff + " | rating: " + rating);
 
                 /*System.out.println(
                     "----------------FOUND A NOTE!----------------"+
@@ -188,9 +196,9 @@ public class Stage extends JPanel {
     private String makeRating(double diff) {
         Rating rating = null;
         String ratingName = null;
-        if(diff <= 30) ratingName = "yeah";
-        else if (diff <= 60) ratingName = "nice";
-        else if (diff <= 90) ratingName = "eh";
+        if(diff <= 50) ratingName = "yeah";
+        else if (diff <= 80) ratingName = "nice";
+        else if (diff <= 110) ratingName = "eh";
         else ratingName = "crap";
 
         Main.main.panelSpecificDebugInfo.put(ratingName+"s", Integer.toString(Integer.parseInt(Main.main.panelSpecificDebugInfo.getOrDefault(ratingName+"s", "0"))+1));
@@ -232,19 +240,27 @@ public class Stage extends JPanel {
         return a * (1.0 - f) + (b * f);
     }
 
+    private String formatToTime(double time) {
+        int minutes = (int)Math.floor(time/60);
+        String seconds = Integer.toString((int)Math.floor(time)%60);
+        if(seconds.length() < 2) seconds = "0" + seconds;
+        return minutes + ":" + seconds;
+    }
+
     private void update(){
         luaInstance.fireLuaFunction("onUpdatePre");
         // move camera
         double camMoveSpd = 0.03;
         if(Math.abs(cam.x - camXTarget) > 5 || Math.abs(cam.y - camYTarget) > 5) cam.setCameraPos(lerp(cam.x, camXTarget, camMoveSpd), lerp(cam.y, camYTarget, camMoveSpd));
-        songpos = (SoundManager.songClip.getMicrosecondPosition() / 1000000.0);
-        double songProgress = songpos / songlong;
-        Conductor.setTime(songpos);
-        double ymod = ((uiNotesYPos+songProgress * songbeat)*downscrollYMod);
+        songPosition = (SoundManager.songClip.getMicrosecondPosition() / 1000000.0);
+        double dumbSongProgress = songPosition / songlong;
+        Conductor.setTime(songPosition);
+        double ymod = ((uiNotesYPos+dumbSongProgress * songbeat)*downscrollYMod);
 
-        double curTimeMS = Conductor.getTime()*1000.0;
+        songProgress = songPosition/songDuration;
+        timeBar.fillPercent = songProgress;
 
-        //System.out.println(Conductor.getBeat());
+        //System.out.println(formatToTime(songDuration-songPosition));
 
         if(beat != Conductor.getBeat()){
             beat = Conductor.getBeat();
@@ -311,6 +327,8 @@ public class Stage extends JPanel {
         }
         ratingsToRemove.clear();
 
+        double curTimeMS = Conductor.getTime()*1000.0;
+        //System.out.println(curTimeMS);
         ListIterator<ArrayList<GameNote>> iter1 = curChart.listIterator();
         while (iter1.hasNext()){
             ListIterator<GameNote> iter2 = iter1.next().listIterator();
@@ -412,12 +430,23 @@ public class Stage extends JPanel {
                 }
 
                 if(gn.playerNote){
-                    if(ClientPrefs.getBoolean("botplay")) {
+                    // handle player note stuff
+                    // this line is so big it might as well have its own variable
 
+                    if(ClientPrefs.getBoolean("botplay")) {
+                        if(gn.timeMS - curTimeMS < 5 && !gn.autohit) {
+                            if(!gn.isHold()) findHittableNoteInLane(true, gn.dir.getDirectionAsInt());
+                            playDudeAnim(gn);
+                            removeNote(gn);
+                            iter2.remove();
+                            continue;
+                        }
+                    } else {
+                        boolean holdHitCondition = Math.abs(curTimeMS-gn.timeMS) < 10;
                         if(
                             (gn.isHold()) &&
                             keysPressed[gn.dir.getDirectionAsInt()] &&
-                            Math.abs(gn.timeMS-curTimeMS) < 10 &&
+                            holdHitCondition &&
                             !gn.autohit
                         ){
                             playDudeAnim(gn);
@@ -426,16 +455,9 @@ public class Stage extends JPanel {
                             iter2.remove();
                             continue;
                         }
-                    } else {
-                        if(gn.timeMS-curTimeMS < 5 && !gn.autohit) {
-                            if(!gn.isHold()) {
-                                findHittableNoteInLane(true, gn.dir.getDirectionAsInt());
-                                uiNotes.get("Player").get(gn.dir.getDirectionAsInt()).visPress();
-                            }
-                            playDudeAnim(gn);
-                            removeNote(gn);
-                            iter2.remove();
-                            continue;
+
+                        if(gn.autohit && gn.y <= uiNotes.get("Player").get(gn.dir.getDirectionAsInt()).y){
+
                         }
                     }
                 } else {
@@ -1122,6 +1144,7 @@ public class Stage extends JPanel {
             FadeManager.fadeOut(new Color(255, 255, 255 ,255), 1, Integer.MAX_VALUE);
 
             Thread countdown = new Thread(()->{
+                songProgress = 0;
                 while(countdownBeat >= -1) {
                     while(paused){}
                     switch (countdownBeat) {
@@ -1198,9 +1221,9 @@ public class Stage extends JPanel {
             AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(songFile);
             AudioFormat format = audioInputStream.getFormat();
             long frames = audioInputStream.getFrameLength();
-            double durationInSeconds = (frames+0.0) / format.getFrameRate();
+            songDuration = (frames+0.0) / format.getFrameRate();
 
-            songlong = (int) Math.round((durationInSeconds/60)*bpm*4);
+            songlong = (int) Math.round((songDuration/60)*bpm*4);
             songbeat=((songlong/60*bpm*4)*(48*scrollSpeed));
 
             //System.out.println(durationInSeconds + "\n" + songlong);
@@ -1284,7 +1307,7 @@ public class Stage extends JPanel {
 
                 // FUCKING NOTES BABYYYYY
                 double ms = 0;
-                ms += -(Conductor.getCrochetSec()/4)*1000.0;
+                ms -= (Conductor.getCrochetSec()/4)*1000.0;
                 for(int b = 0; b < songlong; b++){
                     int line = scan.nextInt();
                     curChartTypes.get(bb).add(line);
@@ -1292,7 +1315,9 @@ public class Stage extends JPanel {
                     double thisMS = ms;
                     ms += (Conductor.getCrochetSec()/4)*1000.0;
                     if(line != 0){
-                        GameNote gn = new GameNote(myx,(48+(b*48*scrollSpeed*dosc)), bb%4, cam, (songName.equals("mus_frostbytep2") && bb < 4), bb >= 4, curChartTypes.get(bb).get(b));
+                        double y = (48+(b*48*scrollSpeed*dosc));
+                        GameNote gn = new GameNote(myx,y, bb%4, cam, (songName.equals("mus_frostbytep2") && bb < 4), bb >= 4, curChartTypes.get(bb).get(b));
+                        if(ClientPrefs.getBoolean("note_debug")) gn.drawHitbox = true;
                         gn.addEffect(colors.get(bb%4));
                         gn.timeMS = thisMS;
                         if(gn.isHold()) cam.addObjectToLayer("UI hold", gn);
@@ -1330,6 +1355,8 @@ public class Stage extends JPanel {
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
         Graphics2D g2 = (Graphics2D) g;
+        Composite prev = g2.getComposite();
+        AlphaComposite ac = null;
 
         if(!loading){
             //cam.moveCamera(-1, -1);
@@ -1354,10 +1381,9 @@ public class Stage extends JPanel {
             }
 
             if(countdownAlpha > 0) {
-                Composite prev = g2.getComposite();
-                AlphaComposite ac = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, countdownAlpha);
+                ac = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, countdownAlpha);
                 g2.setComposite(ac);
-                g2.drawImage(countdownDisplay, Main.windowWidth/2-countdownDisplay.getWidth()*2, Main.windowHeight/2-countdownDisplay.getHeight()*2, countdownDisplay.getWidth()*4, countdownDisplay.getHeight()*4, null);
+                g2.drawImage(countdownDisplay, Main.windowWidth/2-countdownDisplay.getWidth(), Main.windowHeight/2-countdownDisplay.getHeight(), countdownDisplay.getWidth()*2, countdownDisplay.getHeight()*2, null);
                 g2.setComposite(prev);
                 countdownAlpha -= 0.05f;
             }
@@ -1371,8 +1397,20 @@ public class Stage extends JPanel {
             g.setFont(new Font("Comic Sans MS", Font.PLAIN, 16));
             g.setColor(Color.white);
             g.drawString("fps: "+currentFPS, 50, 50);
-            g.drawString("score: " + score, 50, 70);
-            g.drawString("misses: " + misses, 50, 90);
+            g.drawString("score: " + (ClientPrefs.getBoolean("botplay") ? "BOTPLAY" : score), 50, 70);
+            g.drawString("misses: " + (ClientPrefs.getBoolean("botplay") ? "BOTPLAY" : misses), 50, 90);
+
+            if(countdownBeat < -1) {
+                int sin = (int)(Math.sin(Conductor.getStepDb()/2)*3);
+
+                g2.drawImage(timeBar.makeBar(), Main.windowWidth/2-timeBar.width/2, 20+sin, null);
+
+                g2.setFont(new Font("Comic Sans MS", Font.PLAIN, 32));
+                FontMetrics fm = g2.getFontMetrics();
+                String time = formatToTime(songDuration-songPosition);
+
+                backend.TextUtils.drawOutlinedText(g2, time, Main.windowWidth/2-fm.stringWidth(time)/2, 41+sin, 2);
+            }
         } else {
             g.setColor(Color.BLACK);
             g.fillRect(0, 0, getWidth(), getHeight());
