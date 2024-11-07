@@ -55,6 +55,7 @@ public class Stage extends JPanel {
     private boolean drawLoadingBar = true;
 
     public Camera cam;
+    public Camera uiCam;
     private int[] dudeCamMove = {230, -128};
     private int[] badguyCamMove = {115, -128};
     private int[] middleCamMove = {168, -128};
@@ -210,7 +211,7 @@ public class Stage extends JPanel {
             rateImg = FileRetriever.image(filePath);
             ratingCache.put(ratingName, rateImg);
         }
-        rating = new Rating((speakers.x+speakers.image.getWidth()/2)-rateImg.getWidth()/2, speakers.y-rateImg.getHeight()/2, rateImg, cam);
+        rating = new Rating((speakers.x+speakers.image.getWidth()/2), speakers.y, rateImg, cam);
         rating.scale = 0.5;
         rating.xvel = (Math.random()*2)-1;
         rating.yvel = (Math.random()*-3)-1;
@@ -230,8 +231,8 @@ public class Stage extends JPanel {
     }
 
     private void removeNote(GameNote gn){
-        if(gn.isHold()) cam.removeObjectFromLayer("UI hold", gn);
-        else cam.removeObjectFromLayer("UI", gn);
+        if(gn.isHold()) uiCam.removeObjectFromLayer("UI hold", gn);
+        else uiCam.removeObjectFromLayer("UI", gn);
         gn = null;
     }
 
@@ -1067,6 +1068,7 @@ public class Stage extends JPanel {
         instance = this;
         FadeManager.cancelFade();
         cam = new Camera(0, 0, 1.5);
+        uiCam = new Camera(0, 0, 1.5);
         cam.setCameraPos(168, -128);
         setBinds();
 
@@ -1113,9 +1115,9 @@ public class Stage extends JPanel {
             curLoadStep++;
             loadingStep = "LOADING CHART";
             // make it so hold notes render under normal notes
-            cam.addRenderLayer("UI hold", cam.getLayerDepth("UI")-1);
+            uiCam.addRenderLayer("UI hold", uiCam.getLayerDepth("UI")-1);
             // make it so ui notes render under EVERY ui thing
-            cam.addRenderLayer("UI note", cam.getLayerDepth("UI")-2);
+            uiCam.addRenderLayer("UI note", uiCam.getLayerDepth("UI")-2);
             curChart = loadChart(load);
 
             curLoadStep++;
@@ -1301,8 +1303,8 @@ public class Stage extends JPanel {
                     myx=234+50+(60*(bb-4));
                 }
                 // ui note
-                UINote uin = new UINote(myx, starty, bb%4, cam, (songName.equals("mus_frostbytep2") && bb < 4), bb>=4);
-                cam.addObjectToLayer("UI note", uin);
+                UINote uin = new UINote(myx, starty, bb%4, uiCam, (songName.equals("mus_frostbytep2") && bb < 4), bb>=4);
+                uiCam.addObjectToLayer("UI note", uin);
                 uiNotes.get((bb < 4) ? "BadGuy" : "Player").put(bb%4, uin);
 
                 // FUCKING NOTES BABYYYYY
@@ -1316,12 +1318,12 @@ public class Stage extends JPanel {
                     ms += (Conductor.getCrochetSec()/4)*1000.0;
                     if(line != 0){
                         double y = (48+(b*48*scrollSpeed*dosc));
-                        GameNote gn = new GameNote(myx,y, bb%4, cam, (songName.equals("mus_frostbytep2") && bb < 4), bb >= 4, curChartTypes.get(bb).get(b));
+                        GameNote gn = new GameNote(myx,y, bb%4, uiCam, (songName.equals("mus_frostbytep2") && bb < 4), bb >= 4, curChartTypes.get(bb).get(b));
                         if(ClientPrefs.getBoolean("note_debug")) gn.drawHitbox = true;
                         gn.addEffect(colors.get(bb%4));
                         gn.timeMS = thisMS;
-                        if(gn.isHold()) cam.addObjectToLayer("UI hold", gn);
-                        else cam.addObjectToLayer("UI", gn);
+                        if(gn.isHold()) uiCam.addObjectToLayer("UI hold", gn);
+                        else uiCam.addObjectToLayer("UI", gn);
                         ret.get(bb).addLast(gn);
                     } else {
                         // if this is the first note in the column, skip it
@@ -1337,8 +1339,8 @@ public class Stage extends JPanel {
                 }
             }
             // wip
-            GameNote gn = new GameNote(234+50+(60*3),(48+((songlong-1)*48*scrollSpeed*dosc)), 3, cam, false, true, GameNote.NoteType.END_SONG_TRIGGER);
-            cam.addObjectToLayer("UI", gn);
+            GameNote gn = new GameNote(234+50+(60*3),(48+((songlong-1)*48*scrollSpeed*dosc)), 3, uiCam, false, true, GameNote.NoteType.END_SONG_TRIGGER);
+            uiCam.addObjectToLayer("UI", gn);
             ret.get(7).add(gn);
 
             scan.close();
@@ -1351,6 +1353,24 @@ public class Stage extends JPanel {
         return null;
     }
 
+    // for doing fun little camera tricks
+    // https://stackoverflow.com/a/68926993 i think this is how you credit something
+    public static BufferedImage rotate(BufferedImage bimg, double angle) {
+        double sin = Math.abs(Math.sin(Math.toRadians(angle))),
+               cos = Math.abs(Math.cos(Math.toRadians(angle)));
+        int w = bimg.getWidth();
+        int h = bimg.getHeight();
+        int neww = (int) Math.floor(w*cos + h*sin),
+            newh = (int) Math.floor(h*cos + w*sin);
+        BufferedImage rotated = new BufferedImage(neww, newh, bimg.getType());
+        Graphics2D graphic = rotated.createGraphics();
+        graphic.translate((neww-w)/2, (newh-h)/2);
+        graphic.rotate(Math.toRadians(angle), w/2, h/2);
+        graphic.drawRenderedImage(bimg, null);
+        graphic.dispose();
+        return rotated;
+    }
+
     @Override
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
@@ -1360,15 +1380,12 @@ public class Stage extends JPanel {
 
         if(!loading){
             //cam.moveCamera(-1, -1);
-            BufferedImage vp = new BufferedImage(800, 800, BufferedImage.TYPE_INT_ARGB);
-            cam.drawViewport(vp.createGraphics());
-            //vp = ImageUtils.colorMultiply(vp, Color.GREEN);
-            // ImageUtils.colorMultiply(vp, new Color(239, 0, 119))
-            if(!paused) {
-                g.drawImage(vp, 0, 0, null);
-            } else {
-                g.drawImage(pauseViewport, 0, 0, null);
-                g.drawString("press q to quit", 400, 400);
+            for(Camera camera : Arrays.asList(cam, uiCam)) {
+                BufferedImage vp = new BufferedImage(800, 800, BufferedImage.TYPE_INT_ARGB);
+                Graphics2D vpGraphics = vp.createGraphics();
+                camera.drawViewport(vpGraphics);
+                vpGraphics.dispose();
+                g2.drawImage(vp, 0, 0, null);
             }
             for(String key : stageImages.keySet()) {
                 BufferedImage bi = stageImages.get(key);

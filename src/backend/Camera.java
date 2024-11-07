@@ -12,6 +12,7 @@ import java.util.Map;
 
 import main.Main;
 import objects.GameObject;
+import panels.Stage;
 
 public class Camera {
     private Map<String, List<GameObject>> layers;
@@ -273,6 +274,23 @@ public class Camera {
         return bounds;
     }
 
+    public ArrayList<String> getLayers(){
+        return orderToDraw;
+    }
+
+    private void drawLayer(String key, Graphics2D g) {
+        for(GameObject object : layers.get(key)) {
+            if(true) { // TODO: check to make sure the camera can actually see it lol
+                if(Stage.instance != null && object == Stage.instance.dude) {
+                    //System.out.println("IM DRAWING DUDE RN! " + key);
+                }
+                object.render(g, this);
+                object.updateHitbox();
+                // drawn++;
+            }
+        }
+    }
+
     /**
      * Draws all current layers in order to the Graphics2D object supplied.
      * @param g Graphics2D object to draw to.
@@ -281,14 +299,21 @@ public class Camera {
         // int drawn = 0;
         if(bgBI != null) g.drawImage(bgBI, 0, 0, null);
         for(String key : orderToDraw) {
-            for(GameObject object : layers.get(key)) {
-                if(true) { // TODO: check to make sure the camera can actually see it lol
-                    object.render(g, this);
-                    object.updateHitbox();
-                    // drawn++;
-                }
-            }
+            drawLayer(key, g);
         }
         // System.out.println("Objects drawn: " + drawn);
+    }
+
+    public BufferedImage[] drawViewportLayers(int width, int height) {
+        BufferedImage[] layersDrawn = new BufferedImage[(bgBI != null) ? orderToDraw.size() + 1 : orderToDraw.size()];
+        if(bgBI != null) layersDrawn[0] = bgBI;
+        for(int i = 0; i < orderToDraw.size(); i++) {
+            BufferedImage layer = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+            Graphics2D g = layer.createGraphics();
+            drawLayer(orderToDraw.get(i), g);
+            g.dispose();
+            layersDrawn[i + ((bgBI != null) ? 1 : 0)] = layer;
+        }
+        return layersDrawn;
     }
 }

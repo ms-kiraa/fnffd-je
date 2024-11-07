@@ -9,7 +9,7 @@ import backend.Camera;
 import backend.managers.SoundManager;
 
 public class Rating extends GameObject {
-    public static final double gravity = 0.16;
+    public static final double gravity = 0.2;
     public static final float fadeRate = 0.02f;
     
     public double xvel = 0;
@@ -31,13 +31,13 @@ public class Rating extends GameObject {
         x += xvel;
 
         scale += growRate;
-        if(scale > 0.7) bumped = true;
+        if(scale > 0.6) bumped = true;
         if(bumped && growRate > -0.025) {
             growRate -= 0.005;
         }
 
         alpha -= fadeRate;
-        if(alpha <= 0) {
+        if(alpha <= 0 || scale <= 0) {
             active = false;
             alpha = 0;
         }
@@ -59,7 +59,7 @@ public class Rating extends GameObject {
         Composite pre = g.getComposite();
         AlphaComposite ac = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha);
         g.setComposite(ac);
-        g.drawImage(img, (int) (imgPosX-image.getWidth()*scale/2), (int) (imgPosY-image.getHeight()*scale/2), (int) ((img.getWidth()*scale) * cam.scaleFactor), (int) ((img.getHeight()*scale) * cam.scaleFactor), null);
+        g.drawImage(img, (int) (imgPosX-image.getWidth()*scale/2), (int) (imgPosY-image.getHeight()*scale/2), (int) ((img.getWidth()*scale) * cam.scaleFactor), (int) ((img.getHeight()*(scale)) * cam.scaleFactor), null);
         g.setComposite(pre);
         if(drawHitbox) g.drawRect(bounds.x, bounds.y, bounds.width, bounds.height);
     }
